@@ -1,0 +1,82 @@
+my_multi_model= MultiScaleModel.create do
+
+submodel :modelA do
+
+	type :musclekernel
+
+	language :java
+
+	timescale :delta=>10, :max=>100
+
+	execution do
+
+		declare :double_array, :velocity, 5
+
+
+		loop :start_time=>0, :stop_time=>10, :step_time=>1 do
+
+
+  			execute "
+                        System.out.println(\"Sending velocity values\");
+  			for(int i=0; i<velocity.length; i++){
+    			velocity[i]=4;
+  			}
+  			"
+  			send :velocity
+
+		end
+                execute "
+                 System.out.println(\"The end\");
+                "
+	end
+
+end
+
+submodel :modelB do
+
+	type :musclekernel
+
+
+	language :java
+
+	timescale :delta=>10, :max=>100
+
+	execution do
+
+	declare :double_array, :velocity
+
+
+	loop :start_time=>0, :stop_time=>10, :step_time=>1 do
+
+  		receive :velocity
+
+  		execute "
+                        System.out.println(\"Receiving velocity values\");
+  			for(int i=0; i<velocity.length; i++){
+    			System.out.println(velocity[i]);
+  		}
+  		"
+	end
+        execute "
+                 System.out.println(\"The end\");
+        "
+
+	end
+
+end
+
+instance  :modA, :modelA, :domainA
+instance  :modB, :modelB, :domainA
+
+join :modA, :modB  do 
+  tie :velocity, :velocity
+  tie :mass, :mass
+end
+
+generate
+
+
+
+end
+
+

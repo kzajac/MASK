@@ -1,0 +1,38 @@
+<project name="MaskExample1" default="makejar">
+   <property environment="env"/>
+   <property name="muscle.dir" location="${env.MUSCLE_HOME}" />
+   <path id="muscle.classpath">
+    <pathelement location="${muscle.dir}/build/muscle.jar"/>
+    <fileset dir="${muscle.dir}">
+      <include name="thirdparty/*.jar"/>
+    </fileset>
+  </path>
+  
+
+  <target name="compile">
+    <mkdir dir="classes" />
+
+    <property name="muscle.classpath" value="${toString:muscle.classpath}"/> 
+    <!-- build java kernels -->
+    <javac srcdir="src" destdir="classes" classpath="${muscle.classpath}"/>
+
+  </target>
+
+  <target name="clean">
+    <delete dir="classes"/>
+    <delete dir="lib"/>
+  </target>
+
+  <target name="makejar" depends="compile">
+  <mkdir dir="build" />
+  <jar destfile="build/maskExample1.jar">
+    <fileset dir="classes">
+          <include name="mask/example/*"/>
+    </fileset>
+
+  </jar>
+  </target>
+  <target name="rebuild" depends="clean,makejar"
+          description="rebuilds the tutorial"/>
+
+</project>
