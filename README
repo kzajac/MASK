@@ -1,0 +1,27 @@
+This is a prototype of multiscale application skeleton framework.
+
+The framework generates Muscle (http://muscle.berlios.de) project from specyfication in MASK DSL 
+(see examples/model1.mask) 
+
+Quick start:
+
+1. generate muscle java sources from your specyfication in mask language
+- for example for  model1.mask
+
+ruby mask.rb examples/model1.mask
+
+2. generate jar (you have to have muscle installed and set up env $MUSCLE_HOME)
+
+cd generatedExamples/maskExample1/
+ant
+
+3. run using MUSCLE
+
+muscle.rb --main plumber modA modB --cxa_file cxa/maskExample1.cxa.rb 
+
+if there is a memory problem it is good to set heap range for muscle with additional option:
+--heap "128m..216m"
+
+4.You can run it in GridSpace with Muscle interpreter 
+using cxa contents in snippet (change classpath in CxA to the absolute path)
+  
