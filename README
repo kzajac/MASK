@@ -22,6 +22,6 @@ muscle.rb --main plumber modA modB --cxa_file cxa/maskExample1.cxa.rb
 if there is a memory problem it is good to set heap range for muscle with additional option:
 --heap "128m..216m"
 
-4.You can run it in GridSpace with Muscle interpreter 
+4.You can run it in GridSpace on ui (https://gs2.mapper-project.eu/2.4.0-SNAPSHOT/) with Muscle interpreter 
 using cxa contents in snippet (change classpath in CxA to the absolute path)
   
