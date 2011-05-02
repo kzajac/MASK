@@ -70,7 +70,6 @@ instance  :modB, :modelB, :domainA
 
 join :modA, :modB  do 
   tie :velocity, :velocity
-  tie :mass, :mass
 end
 
 generate
