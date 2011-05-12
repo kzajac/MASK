@@ -1,6 +1,6 @@
 require "ftools"
 
-class DSLThing
+class DSLElement
  def copyvars
   self.class.instance_variables.each do |var|
    instance_variable_set(var, self.class.instance_variable_get(var))
@@ -8,17 +8,18 @@ class DSLThing
  end
 end
 
-class MultiScaleModel < DSLThing
+class MultiScaleModel < DSLElement
  attr_accessor :submodels, :mappers, :converters, :model_instances, :model_instances
  
- def self.create(&block)
+ def self.generate(&block)
   f = MultiScaleModel.new
   f.class.class_eval(&block) if block_given?
-  f.copyvars  
+  f.copyvars
+  generate_it
   return f
  end
  
- def self.submodel(namesym, &blk)
+ def self.model(namesym, &blk)
   name=namesym.to_s.capitalize
   @submodels ||= Hash.new
   klass = Class.new(Submodel)
@@ -52,14 +53,14 @@ class MultiScaleModel < DSLThing
  def self.instance(name, nameMod, domain)
   @instances ||= Hash.new
   if @instances.has_key?(name) 
-      puts "error! double instance name"  
+      puts "error!!! double instance name"
       exit
   end
   @instances[name] = [nameMod, domain]
  end
  
 
- def self.generate()
+ def self.generate_it()
   _g=Muscle_Generator.new  
   @instances.each_key do |name|
       @submodels[@instances[name][0].to_s.capitalize].class.class_eval do 
@@ -81,7 +82,7 @@ class MultiScaleModel < DSLThing
  end
 end
 
-class Element < DSLThing
+class Element < DSLElement
  attr_accessor :name
  
  def initialize(name=nil)
@@ -96,7 +97,7 @@ class Submodel < Element
   super
  end
 
- def self.generate g, instance_name 
+ def self.generate g, instance_name
    g.generate_kernel instance_name,  @declarations, @execution  
  end
 

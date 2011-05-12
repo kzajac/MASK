@@ -1,8 +1,16 @@
-my_multi_model= MultiScaleModel.create do
+MultiScaleModel.generate do
 
-submodel :modelA do
+model :my_multi_model do
 
-	type :musclekernel
+       type :muscleapp
+       #type :composite
+       
+model :submodelA do
+       
+        type :musclekernel
+        
+        
+	%do zmiany type scaleful implemenation_type :musclekernel
 
 	language :java
 
@@ -32,7 +40,7 @@ submodel :modelA do
 
 end
 
-submodel :modelB do
+model :submodelB do
 
 	type :musclekernel
 
@@ -65,17 +73,24 @@ submodel :modelB do
 
 end
 
-instance  :modA, :modelA, :domainA
-instance  :modB, :modelB, :domainA
 
-join :modA, :modB  do 
-  tie :velocity, :velocity
+
+execution  do
+
+    instance  :modA, :submodelA, :domainA
+    instance  :modB, :submodelB, :domainA
+
+    join :modA, :modB  do 
+	tie :velocity, :velocity
+    end
+    join :my_port :modB do
+        tie :velocity, :velocity
+    end
 end
 
-generate
+end # my_multi_model
 
 
-
-end
+end #generate
 
 
