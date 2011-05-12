@@ -8,7 +8,7 @@ Quick start:
 1. generate muscle java sources from your specyfication in mask language
 - for example for  model1.mask
 
-ruby mask.rb examples/model1.mask
+ruby src/mask.rb examples/model1.mask
 
 2. generate jar (you have to have muscle installed and set up env $MUSCLE_HOME)
 
