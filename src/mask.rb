@@ -8,8 +8,23 @@ class DSLElement
  end
 end
 
+class Element < DSLElement
+ attr_accessor :name
+
+ def initialize(name=nil)
+  @name = name
+ end
+
+ def self.create_unique_object(name, klass)
+  Object.const_set(name, klass) if not Object.const_defined?(name)
+  p = Object.const_get(name).new(name)
+  return p
+ end
+end
+
+
 class MultiScaleModel < DSLElement
- attr_accessor :submodels, :mappers, :converters, :model_instances, :model_instances
+ attr_accessor :model
  
  def self.generate(&block)
   f = MultiScaleModel.new
@@ -21,87 +36,34 @@ class MultiScaleModel < DSLElement
  
  def self.model(namesym, &blk)
   name=namesym.to_s.capitalize
-  @submodels ||= Hash.new
-  klass = Class.new(Submodel)
-  Object.const_set(name, klass) if not Object.const_defined?(name)
-  p = Object.const_get(name).new
+  klass = Class.new(Model)
+  p=Element.create_unique_object(name, klass)
   p.class.class_eval(&blk) if block_given?
-  p.copyvars  
-  @submodels[name] = p
+  p.copyvars
+  @model  = p
+  p @model
  end
- 
- def self.converter(name, &blk)
-  @converters ||= Hash.new
-  klass = Class.new(Converter)
-  Object.const_set(name, klass) if not Object.const_defined?(name)
-  p = Object.const_get(name).new
-  p.class.class_eval(&blk) if block_given?
-  p.copyvars  
-  @converters[name] = p
- end
-
- def self.mapper(name, &blk)
-  @mappers ||= Hash.new
-  klass = Class.new(Mapper)
-  Object.const_set(name, klass) if not Object.const_defined?(name)
-  p = Object.const_get(name).new
-  p.class.class_eval(&blk) if block_given?
-  p.copyvars  
-  @mappers[name] = p
- end
- 
- def self.instance(name, nameMod, domain)
-  @instances ||= Hash.new
-  if @instances.has_key?(name) 
-      puts "error!!! double instance name"
-      exit
-  end
-  @instances[name] = [nameMod, domain]
- end
- 
 
  def self.generate_it()
   _g=Muscle_Generator.new  
-  @instances.each_key do |name|
-      @submodels[@instances[name][0].to_s.capitalize].class.class_eval do 
-       generate _g, name
-         end 
-  end
-  _g.generate_build_xml  
-  _g.generate_cxa @connection_scheme
+#   model.generate
+ # _g.generate_build_xml
+ # _g.generate_cxa @connection_scheme
  end
 
- def self.join(module1, module2, &blk)
-   @connection_scheme ||=Hash.new
-   @connection_scheme[[module1,module2]]||=[]
-   @place_in_cs = @connection_scheme[[module1,module2]]
-   blk.call if block_given?
- end
- def self.tie(portA, portB)
-  @place_in_cs.push([portA, portB])
- end
+ 
 end
 
-class Element < DSLElement
- attr_accessor :name
- 
- def initialize(name=nil)
-  @name = name
- end
-end
 
-class Submodel < Element 
- attr_accessor :execution, :type, :declarations
+class Model < Element
  
+
  def initialize(name=nil)
   super
  end
+ 
 
- def self.generate g, instance_name
-   g.generate_kernel instance_name,  @declarations, @execution  
- end
-
- def self.type(mtype)
+ def self.implementation_type(mtype)
   @type = mtype
  end
 
@@ -116,19 +78,53 @@ class Submodel < Element
   end
  end
 
- def self.execution(&blk)
-  @execution||=[]
-  #if execution.nil?
-  #  @current=
-  #    execution
-  #  puts current
-    blk.call if block_given?
- # else
- #   puts "error: execution block called twice"
- # end
+def self.model(namesym, &blk)
+  name=namesym.to_s.capitalize
+  @models||=Hash.new
+  klass = Class.new(Model)
+  p=Element.create_unique_object(name, klass)
+  p.class.class_eval(&blk) if block_given?
+  p.copyvars
+  @models[name]  = p
+  p p
  end
 
- def self.declare(type, name, count=-1)
+def self.execution(&blk)
+  klass = Class.new(Execution)
+  name=self.name.to_s+"Execution"
+  p=Element.create_unique_object(name, klass)
+  p.class.class_eval(&blk) if block_given?
+  p.copyvars
+  @execution  = p
+ end
+
+ #def generate
+
+ #  @models[@instances[name][0].to_s.capitalize].class.class_eval do
+
+ #end
+end
+
+
+class Execution < Element
+  attr_accessor  :instances, :execution, :declarations
+
+  def initialize(name=nil)
+    super 
+  end
+  
+  def self.join(module1, module2, &blk)
+    _name=module1.to_s.capitalize+module2.to_s.capitalize
+    @join||=Hash.new
+    klass = Class.new(Joining)
+    Object.const_set(_name, klass) if not Object.const_defined?(_name)
+    p = Object.const_get(_name).new(module1,module2)
+    p.class.class_eval(&blk) if block_given?
+    p.copyvars
+    @join[_name]  = p
+  end
+ 
+  def self.declare (type, name, count=-1)
    if(type!=:double_array) 
      puts "error: type of #{name} not supported"
      exit
@@ -138,52 +134,81 @@ class Submodel < Element
      puts "error: #{name} declared twice"
    end
    @declarations[name]=[type, count] 
- end 
-
- def self.receive(name)
-  @execution.push([:receive,name])
-  @declarations[name].push(:receive) 
- end
- 
- def self.send(name)
-  @execution.push([:send,name]) 
-  @declarations[name].push(:send)
- end
- 
- def self.execute(string_code)
-  @execution.push([:execute, string_code])
-  #puts string_code
- end
-
- def self.loop(loop_prop, &blk)
-  @loop ||= Hash.new
-  loop_prop.each_key do |properties|
-   @loop[properties]= loop_prop[properties]
   end
-  @new_exec=[]
-  @execution.push([:loop, @loop,@new_exec])
-  @old=@execution
-  @execution=@new_exec
-  blk.call if block_given? 
-  @execution=@old
- end
+
+  def self.instance(name, nameMod, domain)
+   @instances ||= Hash.new
+   if @instances.has_key?(name)
+      puts "error!!! double instance name"
+      exit
+   end
+   @instances[name] = [nameMod, domain]
+  end
+
+  def self.receive(name)
+   @execution||=[]
+   @execution.push([:receive,name])
+   @declarations[name].push(:receive)
+  end
  
+  def self.send(name)
+   @execution||=[]
+   @execution.push([:send,name])
+   @declarations[name].push(:send)
+  end
+ 
+  def self.execute(string_code)
+   @execution||=[]
+   @execution.push([:execute, string_code])
+   #puts string_code
+  end
 
- end
+ 
+ 
+ 
+  def self.loop(loop_prop, &blk)
+   @execution||=[]
+   @loop ||= Hash.new
+   loop_prop.each_key do |properties|
+    @loop[properties]= loop_prop[properties]
+   end
+   @new_exec=[]
+   @execution.push([:loop, @loop,@new_exec])
+   @old=@execution
+   @execution=@new_exec
+   blk.call if block_given?
+   @execution=@old
+  end
 
+  def generate
+    @instances.each_key do |name|
+      @models[@instances[name][0].to_s.capitalize].class.class_eval do
+       generate _g, name
+      end
+    end
 
-class Mapper < Element
- def initialize(name=nil)
-  super
- end
+  end
+ 
+    
+  
 end
+class Joining < DSLElement
+  def initialize(module1,module2)
+    @module1=module1
+    @module2=module2
+  end
 
 
-class Converter < Element
- def initialize(name=nil)
-  super
+  def self.tie(portA, portB)
+    @port_connections||=[]
+    @port_connections.push([portA, portB])
+  end
  end
-end
+
+
+
+
+
 
 class Muscle_Generator
  def generate_kernel (instance_name, declarations, execution)
