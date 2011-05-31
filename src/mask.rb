@@ -43,11 +43,8 @@ class MultiScaleModel < DSLElement
   p @model
  end
 
- def self.generate_it()
-  _g=Muscle_Generator.new  
-   @model.generate _g
- # _g.generate_build_xml
- # _g.generate_cxa @connection_scheme
+ def self.generate_it() 
+   @model.generate 
  end
 
  
@@ -63,7 +60,7 @@ class Model < Element
  
 
  def self.implementation_type(mtype)
-  @type = mtype
+  @implementation_type = mtype
  end
 
  def self.language(mtype)
@@ -92,11 +89,15 @@ def self.execution(&blk)
 
  end
 
- def generate generator, instance_name=nil
+ def generate generator=nil, instance_name=nil
 
-    p name, "generate"
-    @execution.generate generator, self, instance_name
- 
+   if (generator.nil?)
+       if (@implementation_type==:muscle_application)
+        generator=Muscle_Generator.new
+       end
+   end
+   
+   @execution.generate generator, self, instance_name
  end
 end
 
@@ -175,21 +176,38 @@ class Execution < Element
    @execution=@old
   end
 
-  def generate generator, my_model, instance_name
-    if (my_model.implementation_type=="muscle_kernel")
-     if (instance_name?)
-        generator.generate_kernel(instance_name, @declarations, @execution)
-     else
-       generator.generate_kernel(my_model.name, @declarations, @execution)
-    end
-    end
-    @instances||=Hash.new
-    @instances.each_key do |name|
-      my_model.models[@instances[name][0].to_s.capitalize].generate generator, name
+  def generate generator, my_model, instance_name=nil
+   # TODO - other types
+   p my_model.implementation_type
+ 
+    if (my_model.implementation_type==:muscle_application)
+         
+         generator.generate_build_xml
+         
+         if (!instances.nil?)
+               @instances.each_key do |name|
+               my_model.models[@instances[name][0].to_s.capitalize].generate generator, name
      
-    #if @join?
+    
+               end
+         end
+         if (!@join.nil?)
+           @join.each_key do |name|
+                @join[name].generate generator
+            end
+         end
+     end
+  
+     if (my_model.implementation_type==:muscle_kernel)
+         if (!instance_name.nil?)
+            generator.generate_kernel(instance_name, @declarations, @execution)
+         else
+           generator.generate_kernel(my_model.name, @declarations, @execution)
+         end
+
      end
     
+       
    
 
   end
@@ -207,6 +225,9 @@ class Joining < DSLElement
   def self.tie(portA, portB)
     @port_connections||=[]
     @port_connections.push([portA, portB])
+  end
+  def generate generator
+    generator.generate_cxa(@module1, @module2, @port_connections)
   end
  end
 
@@ -234,7 +255,8 @@ class Muscle_Generator
                 @my_file=f
      		generate_prefix _instance_name_capital 
      		generate_ports declarations 
-     		generate_get_scale 
+     		generate_get_scale
+        generate_execution_begin
      		generate_execution_declarations declarations 
      		generate_execution_body execution, 1
      		generate_end 
@@ -267,29 +289,31 @@ public class #{instance_name} extends muscle.core.kernel.CAController {
 
 
  def generate_ports declarations
-   declarations.each_key do |name|
+   if (!declarations.nil?)
+    declarations.each_key do |name|
        if declarations[name][2]==:send
           @my_file.puts "\tprivate ConduitEntrance<double[]> #{name}pipe;"        
        end
        if declarations[name][2]==:receive
           @my_file.puts "\tprivate ConduitExit<double[]> #{name}pipe;"        
        end
-   end  
-   @my_file.puts " "
-   @my_file.puts "\tprotected void addPortals(){"
+    end  
+    @my_file.puts " "
+    @my_file.puts "\tprotected void addPortals(){"
 
-   declarations.each_key do |name|
+      declarations.each_key do |name|
        if declarations[name][2]==:send
           @my_file.puts "\t\t#{name}pipe= addEntrance(\"#{name}\",1, double[].class);"        
        end
        if declarations[name][2]==:receive
           @my_file.puts  "\t\t#{name}pipe= addExit(\"#{name}\",1, double[].class);"
        end
-   end  
+    end  
 
-   @my_file.puts "	}"
- end 
+    @my_file.puts "	}"
 
+   end 
+ end
  def generate_get_scale
    @my_file.puts "
 \tpublic muscle.core.Scale getScale() {
@@ -299,44 +323,46 @@ public class #{instance_name} extends muscle.core.kernel.CAController {
 \t}
    "
  end
-
+def generate_execution_begin
+      @my_file.puts "\tprotected void execute(){"
+    
+end
  def generate_execution_declarations declarations
-  @my_file.puts "\tprotected void execute(){"
-
-   declarations.each_key do |name|
+   if (!declarations.nil?)
+    declarations.each_key do |name|
        if declarations[name][2]==:send
           @my_file.puts "\t\tdouble[] #{name} = new double[#{declarations[name][1]}];"
        end
        if declarations[name][2]==:receive
           @my_file.puts "\t\tdouble[] #{name} = null;"   
        end
-   end  
-
+    end
+   end
  end
 
-
  def generate_execution_body(execution_a, deep)
-  execution_array=execution_a.clone
-  while !execution_array.empty? do
-  @token=execution_array.shift
-  if (@token[0]==:receive)
-    @my_file.puts "\t"*(deep+1)+"#{@token[1]}=#{@token[1]}pipe.receive();"
-  end
-  if (@token[0]==:send)
-    @my_file.puts "\t"*(deep+1)+"#{@token[1]}pipe.send(#{@token[1]});"
-  end
-  if (@token[0]==:execute)
-    @ext_code=@token[1].gsub("\n", "\n"+"\t"*(deep+1))
-    @my_file.puts "\t"*(deep+1)+"#{@ext_code}"
-  end
-  if (@token[0]==:loop)
-    # TODO - unique maskIterator !
-    @my_file.puts "\t"*(deep+1)+"for (int maskIterator=#{@token[1][:start_time]}; maskIterator<#{@token[1][:stop_time]}; maskIterator+=#{@token[1][:step_time]}){"
-    generate_execution_body @token[2],  deep+1
-    @my_file.puts "\t"*(deep+1)+"}"
-  end
-  end
-  
+   if (!execution_a.nil?)
+      execution_array=execution_a.clone
+      while !execution_array.empty? do
+        @token=execution_array.shift
+        if (@token[0]==:receive)
+          @my_file.puts "\t"*(deep+1)+"#{@token[1]}=#{@token[1]}pipe.receive();"
+        end
+        if (@token[0]==:send)
+          @my_file.puts "\t"*(deep+1)+"#{@token[1]}pipe.send(#{@token[1]});"
+        end
+        if (@token[0]==:execute)
+          @ext_code=@token[1].gsub("\n", "\n"+"\t"*(deep+1))
+          @my_file.puts "\t"*(deep+1)+"#{@ext_code}"
+        end
+        if (@token[0]==:loop)
+          # TODO - unique maskIterator !
+          @my_file.puts "\t"*(deep+1)+"for (int maskIterator=#{@token[1][:start_time]}; maskIterator<#{@token[1][:stop_time]}; maskIterator+=#{@token[1][:step_time]}){"
+          generate_execution_body @token[2],  deep+1
+          @my_file.puts "\t"*(deep+1)+"}"
+        end
+      end
+   end
  end
 
  def generate_end
@@ -352,7 +378,7 @@ def generate_build_xml
   File.copy("build.xml_template","generatedExamples/maskExample1/build.xml")
 end
 
-def generate_cxa connection_scheme
+def generate_cxa kernel1, kernel2, connection_scheme
 
   _dir_name="generatedExamples"
    Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
@@ -388,16 +414,14 @@ cxa.env[\"cxa_path\"] = File.dirname(__FILE__)
 # configure connection scheme
 cs = cxa.cs
 "
-	connection_scheme.each_key do |key|
-		_kernel1=key[0]
-		_kernel2=key[1]
-		f.puts "cs.attach('#{_kernel1}' =>'#{_kernel2}' ) {"
-		connection_scheme[key].each do |tied_ports|
+f.puts "cs.attach('#{kernel1}' =>'#{kernel2}' ) {"
+	connection_scheme.each do |tied_ports|
         		f.puts "tie('#{tied_ports[0]}', '#{tied_ports[1]}')"
-		end
-  	f.puts "}"
-	end
-     }
+  end
+f.puts "}"
+
+  }
+
 end
 end
 

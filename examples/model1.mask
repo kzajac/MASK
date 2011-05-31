@@ -2,12 +2,12 @@ MultiScaleModel.generate do
 
 model :my_multi_model do
 
-       implementation_type :muscleapp
+       implementation_type :muscle_application
        
        
 model :submodelA do
        
-        implementation_type :musclekernel
+        implementation_type :muscle_kernel
         
         
 
@@ -41,7 +41,7 @@ end
 
 model :submodelB do
 
-	implementation_type :musclekernel
+	implementation_type :muscle_kernel
 
 
 	language :java
