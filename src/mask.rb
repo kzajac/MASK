@@ -15,9 +15,11 @@ class Element < DSLElement
   @name = name
  end
 
- def self.create_unique_object(name, klass)
+ def self.create_unique_object(name, klass, &blk)
   Object.const_set(name, klass) if not Object.const_defined?(name)
   p = Object.const_get(name).new(name)
+  p.class.class_eval(&blk) if block_given?
+  p.copyvars
   return p
  end
 end
@@ -37,16 +39,13 @@ class MultiScaleModel < DSLElement
  def self.model(namesym, &blk)
   name=namesym.to_s.capitalize
   klass = Class.new(Model)
-  p=Element.create_unique_object(name, klass)
-  p.class.class_eval(&blk) if block_given?
-  p.copyvars
-  @model  = p
+  @model=Element.create_unique_object(name, klass, &blk)
   p @model
  end
 
  def self.generate_it()
   _g=Muscle_Generator.new  
-#   model.generate
+   @model.generate _g
  # _g.generate_build_xml
  # _g.generate_cxa @connection_scheme
  end
@@ -56,7 +55,7 @@ end
 
 
 class Model < Element
- 
+ attr_accessor  :models, :execution, :implementation_type
 
  def initialize(name=nil)
   super
@@ -82,27 +81,23 @@ def self.model(namesym, &blk)
   name=namesym.to_s.capitalize
   @models||=Hash.new
   klass = Class.new(Model)
-  p=Element.create_unique_object(name, klass)
-  p.class.class_eval(&blk) if block_given?
-  p.copyvars
-  @models[name]  = p
-  p p
+  @models[name]=Element.create_unique_object(name, klass, &blk)
+  p @models[name]
  end
 
 def self.execution(&blk)
   klass = Class.new(Execution)
   name=self.name.to_s+"Execution"
-  p=Element.create_unique_object(name, klass)
-  p.class.class_eval(&blk) if block_given?
-  p.copyvars
-  @execution  = p
+  @execution=Element.create_unique_object(name, klass, &blk)
+
  end
 
- #def generate
+ def generate generator, instance_name=nil
 
- #  @models[@instances[name][0].to_s.capitalize].class.class_eval do
-
- #end
+    p name, "generate"
+    @execution.generate generator, self, instance_name
+ 
+ end
 end
 
 
@@ -180,12 +175,22 @@ class Execution < Element
    @execution=@old
   end
 
-  def generate
-    @instances.each_key do |name|
-      @models[@instances[name][0].to_s.capitalize].class.class_eval do
-       generate _g, name
-      end
+  def generate generator, my_model, instance_name
+    if (my_model.implementation_type=="muscle_kernel")
+     if (instance_name?)
+        generator.generate_kernel(instance_name, @declarations, @execution)
+     else
+       generator.generate_kernel(my_model.name, @declarations, @execution)
     end
+    end
+    @instances||=Hash.new
+    @instances.each_key do |name|
+      my_model.models[@instances[name][0].to_s.capitalize].generate generator, name
+     
+    #if @join?
+     end
+    
+   
 
   end
  
