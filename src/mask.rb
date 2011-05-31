@@ -40,7 +40,7 @@ class MultiScaleModel < DSLElement
   name=namesym.to_s.capitalize
   klass = Class.new(Model)
   @model=Element.create_unique_object(name, klass, &blk)
-  p @model
+ # p @model
  end
 
  def self.generate_it() 
@@ -79,7 +79,7 @@ def self.model(namesym, &blk)
   @models||=Hash.new
   klass = Class.new(Model)
   @models[name]=Element.create_unique_object(name, klass, &blk)
-  p @models[name]
+  
  end
 
 def self.execution(&blk)
