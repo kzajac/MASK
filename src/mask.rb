@@ -94,11 +94,21 @@ def self.execution(&blk)
    if (generator.nil?)
        if (@implementation_type==:muscle_application)
         generator=Muscle_Generator.new
+       else
+        if (@implementation_type==:muscle_kernel)
+          generator=Muscle_Generator.new
+        else
+           p "generator for #{implementation_type} not supported"
+           exit
+        end
        end
    end
+
+  
    
    @execution.generate generator, self, instance_name
- end
+
+end
 end
 
 
@@ -396,7 +406,7 @@ abort \"this is a configuration file for to be used with the MUSCLE bootstrap ut
 
 # add build for this cxa to system paths (i.e. CLASSPATH)
 m = Muscle.LAST
-m.add_classpath File.dirname(__FILE__)+\"/../build/maskExample1.jar\"
+m.add_classpath File.expand_path(File.dirname(__FILE__))+\"/../build/maskExample1.jar\"
 
 # configure cxa properties
 cxa = Cxa.LAST
