@@ -45,7 +45,7 @@ class MultiScaleModel < DSLElement
  end
 
  def self.generate_it()
-   @model.generate @model.name
+   @model.generate @main_model_name
  end
 
  
@@ -186,7 +186,7 @@ class Execution < Element
    if (my_model.implementation_type==:muscle_application)
       
          generator=Muscle_Generator.new
-         generator.generate_build_xml
+         generator.generate_build_xml main_name
          name_of_generated_instances||=[]
 
          unless (instances.nil?)
@@ -206,14 +206,14 @@ class Execution < Element
                 connection_scheme.push(cs_element)
             end
          end
-         generator.generate_cxa(name_of_generated_instances, connection_scheme)
+         generator.generate_cxa(main_name, name_of_generated_instances, connection_scheme)
    else
      if (my_model.implementation_type==:muscle_kernel)
          generator=Muscle_Generator.new
          unless (instance_name.nil?)
-            generator.generate_kernel(instance_name, @declarations, @execution)
+            generator.generate_kernel(main_name, instance_name, @declarations, @execution)
          else
-           generator.generate_kernel(my_model.name, @declarations, @execution)
+           generator.generate_kernel(main_name, my_model.name, @declarations, @execution)
          end
 
      else
@@ -246,13 +246,13 @@ class Joining < DSLElement
 
 
 class Muscle_Generator
- def generate_kernel (instance_name, declarations, execution)
+ def generate_kernel (main_name, instance_name, declarations, execution)
        # @generated_kernels||=[]
        # @generated_kernels.push instance_name
      	_instance_name_capital=instance_name.to_s.capitalize 
 	_dir_name="generatedExamples"
         Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
-	_dir_name+="/maskExample1"
+	_dir_name+="/#{main_name}"
         Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
 	_dir_name+="/src"
         Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
@@ -379,19 +379,27 @@ end
   @my_file.puts "}"
  end
 
-def generate_build_xml
+def generate_build_xml main_name
+  p main_name
   _dir_name="generatedExamples"
    Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
-  _dir_name+="/maskExample1"
-  Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
-  File.copy("build.xml_template","generatedExamples/maskExample1/build.xml")
+  _dir_name+="/#{main_name}"
+  Dir.mkdir(_dir_name) unless File.directory?(_dir_name) 
+  
+  text = File.read("build.xml_template")
+  text.gsub!("MaskExample1", "#{main_name}")
+  text.gsub!("maskExample1.jar", "mask#{main_name}.jar")
+  
+  File.open("generatedExamples/#{main_name}/build.xml", "w") {|file| file.puts text}
+    
+
 end
 
-def generate_cxa (generated_kernels, connection_scheme)
+def generate_cxa (main_name, generated_kernels, connection_scheme)
 
   _dir_name="generatedExamples"
    Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
-  _dir_name+="/maskExample1"
+  _dir_name+="/#{main_name}"
   Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
   _dir_name+="/cxa"
   Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
