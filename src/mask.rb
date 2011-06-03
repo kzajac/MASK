@@ -37,14 +37,15 @@ class MultiScaleModel < DSLElement
  end
  
  def self.model(namesym, &blk)
+   @main_model_name=name
   name=namesym.to_s.capitalize
   klass = Class.new(Model)
   @model=Element.create_unique_object(name, klass, &blk)
  # p @model
  end
 
- def self.generate_it() 
-   @model.generate 
+ def self.generate_it()
+   @model.generate @model.name
  end
 
  
@@ -60,7 +61,7 @@ class Model < Element
  
 
  def self.implementation_type(mtype)
-  @implementation_type = mtype
+  @implementation_type = mtype 
  end
 
  def self.language(mtype)
@@ -89,26 +90,10 @@ def self.execution(&blk)
 
  end
 
- def generate generator=nil, instance_name=nil
+ def generate main_name, instance_name=nil
+      @execution.generate self, main_name, instance_name
 
-   if (generator.nil?)
-       if (@implementation_type==:muscle_application)
-        generator=Muscle_Generator.new
-       else
-        if (@implementation_type==:muscle_kernel)
-          generator=Muscle_Generator.new
-        else
-           p "generator for #{implementation_type} not supported"
-           exit
-        end
-       end
-   end
-
-  
-   
-   @execution.generate generator, self, instance_name
-
-end
+ end
 end
 
 
@@ -152,12 +137,19 @@ class Execution < Element
   end
 
   def self.receive(name)
+   if (!@declarations.has_key?(name))
+     puts "error: #{name} received but not declared"
+   end
    @execution||=[]
+   
    @execution.push([:receive,name])
    @declarations[name].push(:receive)
   end
  
   def self.send(name)
+   if (!@declarations.has_key?(name))
+     puts "error: #{name} sent but not declared"
+   end
    @execution||=[]
    @execution.push([:send,name])
    @declarations[name].push(:send)
@@ -186,46 +178,55 @@ class Execution < Element
    @execution=@old
   end
 
-  def generate generator, my_model, instance_name=nil
+  def generate  my_model, main_name, instance_name=nil
    # TODO - other types
    p my_model.implementation_type
- 
-    if (my_model.implementation_type==:muscle_application)
-         
+  
+   
+   if (my_model.implementation_type==:muscle_application)
+      
+         generator=Muscle_Generator.new
          generator.generate_build_xml
-         
-         if (!instances.nil?)
+         name_of_generated_instances||=[]
+
+         unless (instances.nil?)
+               
                @instances.each_key do |name|
-               my_model.models[@instances[name][0].to_s.capitalize].generate generator, name
-     
+                 
+               name_of_generated_instances.push(name)
+               my_model.models[@instances[name][0].to_s.capitalize].generate main_name, name
+
     
                end
          end
-         if (!@join.nil?)
+         connection_scheme||=[]
+         unless (@join.nil?)
            @join.each_key do |name|
-                @join[name].generate generator
+                cs_element=[@join[name].module1, @join[name].module2, @join[name].port_connections]
+                connection_scheme.push(cs_element)
             end
          end
-     end
-  
+         generator.generate_cxa(name_of_generated_instances, connection_scheme)
+   else
      if (my_model.implementation_type==:muscle_kernel)
-         if (!instance_name.nil?)
+         generator=Muscle_Generator.new
+         unless (instance_name.nil?)
             generator.generate_kernel(instance_name, @declarations, @execution)
          else
            generator.generate_kernel(my_model.name, @declarations, @execution)
          end
 
+     else
+       p "implementation type not supported"
+       exit
      end
-    
-       
-   
-
   end
  
-    
+  end
   
 end
 class Joining < DSLElement
+   attr_accessor  :module1, :module2, :port_connections
   def initialize(module1,module2)
     @module1=module1
     @module2=module2
@@ -236,9 +237,7 @@ class Joining < DSLElement
     @port_connections||=[]
     @port_connections.push([portA, portB])
   end
-  def generate generator
-    generator.generate_cxa(@module1, @module2, @port_connections)
-  end
+  
  end
 
 
@@ -248,8 +247,8 @@ class Joining < DSLElement
 
 class Muscle_Generator
  def generate_kernel (instance_name, declarations, execution)
-        @generated_kernels||=[]
-        @generated_kernels.push instance_name
+       # @generated_kernels||=[]
+       # @generated_kernels.push instance_name
      	_instance_name_capital=instance_name.to_s.capitalize 
 	_dir_name="generatedExamples"
         Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
@@ -388,7 +387,7 @@ def generate_build_xml
   File.copy("build.xml_template","generatedExamples/maskExample1/build.xml")
 end
 
-def generate_cxa kernel1, kernel2, connection_scheme
+def generate_cxa (generated_kernels, connection_scheme)
 
   _dir_name="generatedExamples"
    Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
@@ -415,7 +414,7 @@ cxa.env[\"cxa_path\"] = File.dirname(__FILE__)
 
 # declare kernels
 "
-	@generated_kernels.each do |name|
+	generated_kernels.each do |name|
         	_string_key=name.to_s.capitalize
 		f.puts "cxa.add_kernel('#{name}', \"mask.example.#{_string_key}\")"
 	end
@@ -424,11 +423,18 @@ cxa.env[\"cxa_path\"] = File.dirname(__FILE__)
 # configure connection scheme
 cs = cxa.cs
 "
-f.puts "cs.attach('#{kernel1}' =>'#{kernel2}' ) {"
-	connection_scheme.each do |tied_ports|
-        		f.puts "tie('#{tied_ports[0]}', '#{tied_ports[1]}')"
-  end
-f.puts "}"
+
+ connection_scheme.each do |connection|
+     
+       kernel1=connection[0]
+       kernel2=connection[1]
+       f.puts "cs.attach('#{kernel1}' =>'#{kernel2}' ) {"
+       connection[2].each do |tied_ports|
+            f.puts "tie('#{tied_ports[0]}', '#{tied_ports[1]}')"
+       end
+       f.puts "}"
+   end
+
 
   }
 
