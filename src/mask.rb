@@ -37,7 +37,11 @@ class MultiScaleModel < DSLElement
  end
  
  def self.model(namesym, &blk)
-   @main_model_name=name
+
+   #@main_model_name=namesym
+   @main_model_name=namesym.to_s.gsub /(_)/, ""
+   @main_model_name.capitalize!
+   p @main_model_name
   name=namesym.to_s.capitalize
   klass = Class.new(Model)
   @model=Element.create_unique_object(name, klass, &blk)
@@ -180,13 +184,13 @@ class Execution < Element
 
   def generate  my_model, main_name, instance_name=nil
    # TODO - other types
-   p my_model.implementation_type
+   # p my_model.implementation_type
   
    
    if (my_model.implementation_type==:muscle_application)
       
          generator=Muscle_Generator.new
-         generator.generate_build_xml main_name
+         
          name_of_generated_instances||=[]
 
          unless (instances.nil?)
@@ -207,7 +211,8 @@ class Execution < Element
             end
          end
          generator.generate_cxa(main_name, name_of_generated_instances, connection_scheme)
-   else
+         generator.generate_build_xml main_name
+  else
      if (my_model.implementation_type==:muscle_kernel)
          generator=Muscle_Generator.new
          unless (instance_name.nil?)
@@ -217,7 +222,7 @@ class Execution < Element
          end
 
      else
-       p "implementation type not supported"
+       p "error: implementation type #{my_model.implementation_type} not supported"
        exit
      end
   end
@@ -388,7 +393,7 @@ def generate_build_xml main_name
   
   text = File.read("build.xml_template")
   text.gsub!("MaskExample1", "#{main_name}")
-  text.gsub!("maskExample1.jar", "mask#{main_name}.jar")
+  text.gsub!("maskExample1.jar", "#{main_name.downcase}.jar")
   
   File.open("generatedExamples/#{main_name}/build.xml", "w") {|file| file.puts text}
     
@@ -413,7 +418,7 @@ abort \"this is a configuration file for to be used with the MUSCLE bootstrap ut
 
 # add build for this cxa to system paths (i.e. CLASSPATH)
 m = Muscle.LAST
-m.add_classpath File.expand_path(File.dirname(__FILE__))+\"/../build/mask#{main_name}.jar\"
+m.add_classpath File.expand_path(File.dirname(__FILE__))+\"/../build/#{main_name.downcase}.jar\"
 
 # configure cxa properties
 cxa = Cxa.LAST

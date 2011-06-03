@@ -1,0 +1,42 @@
+MultiScaleModel.generate do
+
+    model :submodelA do
+       
+        implementation_type :muscle_kernel
+        
+        
+
+	language :java
+
+	timescale :delta=>10, :max=>100
+
+	execution do
+
+		declare :double_array, :velocity, 5
+
+
+		loop :start_time=>0, :stop_time=>10, :step_time=>1 do
+
+
+  			execute "
+                        System.out.println(\"Sending velocity values\");
+  			for(int i=0; i<velocity.length; i++){
+    			velocity[i]=4;
+  			}
+  			"
+  			send :velocity
+
+		end
+                execute "
+                 System.out.println(\"The end\");
+                "
+	end
+
+    end
+
+end # my_multi_model
+
+
+end #generate
+
+

@@ -5,7 +5,7 @@ model :my_multi_model do
        implementation_type :muscle_application
        
        
-model :submodelA do
+    model :submodelA do
        
         implementation_type :muscle_kernel
         
@@ -37,9 +37,9 @@ model :submodelA do
                 "
 	end
 
-end
+    end
 
-model :submodelB do
+    model :submodelB do
 
 	implementation_type :muscle_kernel
 
@@ -70,19 +70,19 @@ model :submodelB do
 
 	end
 
-end
-
-
-
-execution  do
-
-    instance  :modA, :submodelA, :domainA
-    instance  :modB, :submodelB, :domainA
-
-    join :modA, :modB  do 
-	tie :velocity, :velocity
     end
-end
+
+
+
+    execution  do
+
+	instance  :modA, :submodelA, :domainA
+	instance  :modB, :submodelB, :domainA
+
+	join :modA, :modB  do 
+	    tie :velocity, :velocity
+	end
+    end
 
 end # my_multi_model
 
