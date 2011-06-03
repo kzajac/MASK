@@ -404,7 +404,7 @@ def generate_cxa (main_name, generated_kernels, connection_scheme)
   _dir_name+="/cxa"
   Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
 
-  open("#{_dir_name}/maskExample1.cxa.rb", 'w') { |f|
+  open("#{_dir_name}/#{main_name}.cxa.rb", 'w') { |f|
 
     f.puts "
 
@@ -413,7 +413,7 @@ abort \"this is a configuration file for to be used with the MUSCLE bootstrap ut
 
 # add build for this cxa to system paths (i.e. CLASSPATH)
 m = Muscle.LAST
-m.add_classpath File.expand_path(File.dirname(__FILE__))+\"/../build/maskExample1.jar\"
+m.add_classpath File.expand_path(File.dirname(__FILE__))+\"/../build/mask#{main_name}.jar\"
 
 # configure cxa properties
 cxa = Cxa.LAST
