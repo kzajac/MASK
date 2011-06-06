@@ -4,6 +4,13 @@ This is experimental, could produce errors
 The framework generates Muscle (http://muscle.berlios.de) project from specyfication in MASK DSL 
 (see examples/model1.mask) 
 
+Plan TODO
+
+-CxA params
+-scale params
+-szablony aplikacji ISR, Fuzja
+- generator info do xmla
+ 
 Quick start:
 
 1. generate muscle java sources from your specyfication in mask language
