@@ -16,8 +16,10 @@ model :my_multi_model do
 	timescale :delta=>10, :max=>100
 
 	execution do
-
-		declare :double_array, :velocity, 5
+	#TODO:
+        	declare_param :len=>4
+                declare_port :velocity, :double_array, :len
+		
 
 
 		loop :start_time=>0, :stop_time=>10, :step_time=>1 do
@@ -50,8 +52,8 @@ model :my_multi_model do
 
 	execution do
 
-	declare :double_array, :velocity
-
+	declare_port :velocity, :double_array
+        
 
 	loop :start_time=>0, :stop_time=>10, :step_time=>1 do
 

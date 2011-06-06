@@ -102,7 +102,7 @@ end
 
 
 class Execution < Element
-  attr_accessor  :instances, :execution, :declarations
+  attr_accessor  :instances, :execution, :declarations, :params
 
   def initialize(name=nil)
     super 
@@ -119,7 +119,7 @@ class Execution < Element
     @join[_name]  = p
   end
  
-  def self.declare (type, name, count=-1)
+  def self.declare_port (name, type ,count=-1)
    if(type!=:double_array) 
      puts "error: type of #{name} not supported"
      exit
@@ -130,7 +130,17 @@ class Execution < Element
    end
    @declarations[name]=[type, count] 
   end
-
+  def self.declare_param(name, type, value)
+   if(type!=:int)
+     puts "error: type of #{name} not supported"
+     exit
+   end
+   @params||=Hash.new
+   if (@params.has_key?(name))
+     puts "error: #{name} declared twice"
+   end
+   @params[name]=[type, value]
+  end
   def self.instance(name, nameMod, domain)
    @instances ||= Hash.new
    if @instances.has_key?(name)
@@ -220,6 +230,7 @@ class Execution < Element
          else
            generator.generate_kernel(main_name, my_model.name, @declarations, @execution)
          end
+         generator.generate_build_xml main_name
 
      else
        p "error: implementation type #{my_model.implementation_type} not supported"
