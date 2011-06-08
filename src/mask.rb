@@ -57,7 +57,7 @@ end
 
 
 class Model < Element
- attr_accessor  :models, :execution, :implementation_type
+ attr_accessor  :models, :execution, :implementation_type, :name
 
  def initialize(name=nil)
   super
@@ -65,7 +65,8 @@ class Model < Element
  
 
  def self.implementation_type(mtype)
-  @implementation_type = mtype 
+    @implementation_type = mtype
+   
  end
 
  def self.language(mtype)
@@ -91,11 +92,18 @@ def self.execution(&blk)
   klass = Class.new(Execution)
   name=self.name.to_s+"Execution"
   @execution=Element.create_unique_object(name, klass, &blk)
-
  end
 
- def generate main_name, instance_name=nil
-      @execution.generate self, main_name, instance_name
+ def generate main_name
+   unless (models.nil?)
+
+             models.each_key do |name|
+
+                  models[name].generate main_name
+
+             end
+   end
+   @execution.generate self, main_name
 
  end
 end
@@ -130,16 +138,16 @@ class Execution < Element
    end
    @declarations[name]=[type, count] 
   end
-  def self.declare_param(name, type, value)
-   if(type!=:int)
-     puts "error: type of #{name} not supported"
-     exit
-   end
+  def self.declare_param(key_value)
    @params||=Hash.new
-   if (@params.has_key?(name))
-     puts "error: #{name} declared twice"
+   key_value.each_key do |key|
+    
+     if (@params.has_key?(key))
+        puts "error: #{key} declared twice"
+     else
+       @params[key]=key_value[key]
+     end
    end
-   @params[name]=[type, value]
   end
   def self.instance(name, nameMod, domain)
    @instances ||= Hash.new
@@ -147,6 +155,7 @@ class Execution < Element
       puts "error!!! double instance name"
       exit
    end
+   # TODO check if such module exists !
    @instances[name] = [nameMod, domain]
   end
 
@@ -183,6 +192,7 @@ class Execution < Element
    @loop ||= Hash.new
    loop_prop.each_key do |properties|
     @loop[properties]= loop_prop[properties]
+    # TODO declare_param(properties=>loop_prop[properties])
    end
    @new_exec=[]
    @execution.push([:loop, @loop,@new_exec])
@@ -192,26 +202,28 @@ class Execution < Element
    @execution=@old
   end
 
-  def generate  my_model, main_name, instance_name=nil
+  def generate  my_model, main_name
    # TODO - other types
    # p my_model.implementation_type
   
    
    if (my_model.implementation_type==:muscle_application)
-      
+        
          generator=Muscle_Generator.new
-         
-         name_of_generated_instances||=[]
+         cxa_params||= Hash.new
+          unless (my_model.models.nil?)
 
-         unless (instances.nil?)
-               
-               @instances.each_key do |name|
-                 
-               name_of_generated_instances.push(name)
-               my_model.models[@instances[name][0].to_s.capitalize].generate main_name, name
-
-    
-               end
+             my_model.models.each_key do |name|
+              
+                    model_params||=my_model.models[name].execution.params
+                    unless model_params.nil?
+                        model_params.each_key do |key|
+                          unique_key="#{name}:#{key}"
+                          cxa_params[unique_key]=model_params[key]
+                        end
+                    end
+                 # end
+             end
          end
          connection_scheme||=[]
          unless (@join.nil?)
@@ -220,16 +232,14 @@ class Execution < Element
                 connection_scheme.push(cs_element)
             end
          end
-         generator.generate_cxa(main_name, name_of_generated_instances, connection_scheme)
+         generator.generate_cxa(main_name,  cxa_params, @instances, connection_scheme)
          generator.generate_build_xml main_name
   else
      if (my_model.implementation_type==:muscle_kernel)
          generator=Muscle_Generator.new
-         unless (instance_name.nil?)
-            generator.generate_kernel(main_name, instance_name, @declarations, @execution)
-         else
-           generator.generate_kernel(main_name, my_model.name, @declarations, @execution)
-         end
+         
+         generator.generate_kernel(main_name, my_model.name, @declarations, @execution, @params)
+        
          generator.generate_build_xml main_name
 
      else
@@ -262,10 +272,10 @@ class Joining < DSLElement
 
 
 class Muscle_Generator
- def generate_kernel (main_name, instance_name, declarations, execution)
+ def generate_kernel (main_name, model_name, declarations, execution, params)
        # @generated_kernels||=[]
        # @generated_kernels.push instance_name
-     	_instance_name_capital=instance_name.to_s.capitalize 
+     	_model_name_capital=model_name.to_s.capitalize
 	_dir_name="generatedExamples"
         Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
 	_dir_name+="/#{main_name}"
@@ -276,13 +286,13 @@ class Muscle_Generator
         Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
 	_dir_name+="/example"
         Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
-     	open("#{_dir_name}/#{_instance_name_capital}.java", 'w') { |f|
+     	open("#{_dir_name}/#{_model_name_capital}.java", 'w') { |f|
                 @my_file=f
-     		generate_prefix _instance_name_capital 
+     		generate_prefix _model_name_capital
      		generate_ports declarations 
      		generate_get_scale
         generate_execution_begin
-     		generate_execution_declarations declarations 
+     		generate_execution_declarations model_name, declarations, params
      		generate_execution_body execution, 1
      		generate_end 
                 f.close
@@ -294,6 +304,7 @@ class Muscle_Generator
 
 package mask.example;
 
+import muscle.core.CxADescription;
 import muscle.core.ConduitExit;
 import muscle.core.ConduitEntrance;
 import muscle.core.Scale;
@@ -352,17 +363,36 @@ def generate_execution_begin
       @my_file.puts "\tprotected void execute(){"
     
 end
- def generate_execution_declarations declarations
-   if (!declarations.nil?)
-    declarations.each_key do |name|
-       if declarations[name][2]==:send
-          @my_file.puts "\t\tdouble[] #{name} = new double[#{declarations[name][1]}];"
-       end
-       if declarations[name][2]==:receive
-          @my_file.puts "\t\tdouble[] #{name} = null;"   
-       end
-    end
+ def generate_execution_declarations model_name, declarations, params
+
+
+    unless (params.nil?)
+        params.each_key do |name|
+          unique_key="#{model_name}:#{name}"
+          case (params[name])
+           when Integer
+             #@my_file.puts "\t\tint #{name} = #{params[name]};"
+
+             @my_file.puts "\t\tint #{name} = CxADescription.ONLY.getIntProperty(\"#{unique_key}\");"
+           when Float
+            # @my_file.puts "\t\tdouble #{name} = #{params[name]};"
+             @my_file.puts "\t\tdouble #{name} = CxADescription.ONLY.getDoubleProperty(\"#{unique_key}\");"
+          else
+            p "Unrecognized type of parameter for #{name}"
+          end
+
+        end
    end
+   if (!declarations.nil?)
+        declarations.each_key do |name|
+           if declarations[name][2]==:send
+              @my_file.puts "\t\tdouble[] #{name} = new double[#{declarations[name][1]}];"
+           end
+           if declarations[name][2]==:receive
+              @my_file.puts "\t\tdouble[] #{name} = null;"
+           end
+        end
+       end
  end
 
  def generate_execution_body(execution_a, deep)
@@ -411,7 +441,7 @@ def generate_build_xml main_name
 
 end
 
-def generate_cxa (main_name, generated_kernels, connection_scheme)
+def generate_cxa (main_name, params,  instances, connection_scheme)
 
   _dir_name="generatedExamples"
    Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
@@ -438,10 +468,22 @@ cxa.env[\"cxa_path\"] = File.dirname(__FILE__)
 
 # declare kernels
 "
-	generated_kernels.each do |name|
-        	_string_key=name.to_s.capitalize
-		f.puts "cxa.add_kernel('#{name}', \"mask.example.#{_string_key}\")"
+  
+      
+ 
+  unless (params.nil?)
+   params.each_key do |name|
+
+    f.puts "cxa.env[\"#{name}\"]=#{params[name]}"
+   end
 	end
+  
+  
+    instances.each_key do |name|
+    #p instances[name]
+    f.puts "cxa.add_kernel('#{name}', \"mask.example.#{instances[name][0].to_s.capitalize}\")"
+	  end
+  
 
 	f.puts "
 # configure connection scheme
