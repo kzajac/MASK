@@ -211,11 +211,11 @@ class Execution < Element
         
          generator=Muscle_Generator.new
          cxa_params||= Hash.new
-          unless (my_model.models.nil?)
+          unless (@instances.nil?)
 
-             my_model.models.each_key do |name|
+             @instances.each_key do |name|
               
-                    model_params||=my_model.models[name].execution.params
+                    model_params||=my_model.models[@instances[name][0].to_s.capitalize].execution.params
                     unless model_params.nil?
                         model_params.each_key do |key|
                           unique_key="#{name}:#{key}"
@@ -360,7 +360,10 @@ public class #{instance_name} extends muscle.core.kernel.CAController {
    "
  end
 def generate_execution_begin
-      @my_file.puts "\tprotected void execute(){"
+      @my_file.puts "\tprotected void execute(){
+  \t\tString myName= getKernelBootInfo().getName();    
+  "
+
     
 end
  def generate_execution_declarations model_name, declarations, params
@@ -368,15 +371,15 @@ end
 
     unless (params.nil?)
         params.each_key do |name|
-          unique_key="#{model_name}:#{name}"
+          unique_key="myName+\":#{name}\""
           case (params[name])
            when Integer
              #@my_file.puts "\t\tint #{name} = #{params[name]};"
 
-             @my_file.puts "\t\tint #{name} = CxADescription.ONLY.getIntProperty(\"#{unique_key}\");"
+             @my_file.puts "\t\tint #{name} = CxADescription.ONLY.getIntProperty(#{unique_key});"
            when Float
             # @my_file.puts "\t\tdouble #{name} = #{params[name]};"
-             @my_file.puts "\t\tdouble #{name} = CxADescription.ONLY.getDoubleProperty(\"#{unique_key}\");"
+             @my_file.puts "\t\tdouble #{name} = CxADescription.ONLY.getDoubleProperty(#{unique_key});"
           else
             p "Unrecognized type of parameter for #{name}"
           end

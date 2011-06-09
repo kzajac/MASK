@@ -84,6 +84,12 @@ model :my_multi_model do
 	join :modA, :modB  do 
 	    tie :velocity, :velocity
 	end
+	instance  :modAa, :submodelA, :domainA
+	instance  :modBa, :submodelB, :domainA
+
+	join :modAa, :modBa  do 
+	    tie :velocity, :velocity
+	end
     end
 
 end # my_multi_model
