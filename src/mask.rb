@@ -36,7 +36,7 @@ class MultiScaleModel < DSLElement
   return f
  end
  
- def self.model(namesym, &blk)
+ def self.application_module(namesym, &blk)
 
    #@main_model_name=namesym
    @main_model_name=namesym.to_s.gsub /(_)/, ""
@@ -57,18 +57,22 @@ end
 
 
 class Model < Element
- attr_accessor  :models, :execution, :implementation_type, :name
+ attr_accessor  :models, :execution, :implementation_type, :name, :register_xmml_data
 
  def initialize(name=nil)
   super
  end
  
-
- def self.implementation_type(mtype)
-    @implementation_type = mtype
+ def self.register_xmml_data
+   @register_xmml_data=true
    
  end
-
+ def self.implementation_type(mtype)
+    @implementation_type = mtype
+    
+   
+ end
+ 
  def self.language(mtype)
   @language = mtype
  end
@@ -80,7 +84,7 @@ class Model < Element
   end
  end
 
-def self.model(namesym, &blk)
+def self.application_module(namesym, &blk)
   name=namesym.to_s.capitalize
   @models||=Hash.new
   klass = Class.new(Model)
@@ -103,6 +107,8 @@ def self.execution(&blk)
 
              end
    end
+   @register_xmml_data||=false
+  
    @execution.generate self, main_name
 
  end
@@ -159,7 +165,7 @@ class Execution < Element
    @instances[name] = [nameMod, domain]
   end
 
-  def self.receive(name)
+  def self.receive(name, operator_type=:solver)
    if (!@declarations.has_key?(name))
      puts "error: #{name} received but not declared"
    end
@@ -167,6 +173,16 @@ class Execution < Element
    
    @execution.push([:receive,name])
    @declarations[name].push(:receive)
+   @loop_deep||=0;
+    if(@loop_deep>0)
+      if (operator_type==:solver)
+       @declarations[name].push(:S)
+      else
+        @declarations[name].push(:B)
+      end
+    else
+      @declarations[name].push(:finit)
+    end
   end
  
   def self.send(name)
@@ -176,6 +192,12 @@ class Execution < Element
    @execution||=[]
    @execution.push([:send,name])
    @declarations[name].push(:send)
+   @loop_deep||=0;
+    if(@loop_deep>0)
+       @declarations[name].push(:Oi)
+    else
+      @declarations[name].push(:Of)
+    end
   end
  
   def self.execute(string_code)
@@ -188,24 +210,31 @@ class Execution < Element
  
  
   def self.loop(loop_prop, &blk)
+   @loop_deep||=0
+   @loop_deep=@loop_deep+1
+   
    @execution||=[]
    @loop ||= Hash.new
    loop_prop.each_key do |properties|
     @loop[properties]= loop_prop[properties]
-    # TODO declare_param(properties=>loop_prop[properties])
    end
    @new_exec=[]
    @execution.push([:loop, @loop,@new_exec])
    @old=@execution
    @execution=@new_exec
+   
    blk.call if block_given?
    @execution=@old
+   @loop_deep=@loop_deep-1
+
   end
 
   def generate  my_model, main_name
    # TODO - other types
    # p my_model.implementation_type
-  
+   if(my_model.register_xmml_data)
+     XMML_Generator.new.generate my_model.name, @declarations
+   end
    
    if (my_model.implementation_type==:muscle_application)
         
@@ -269,7 +298,11 @@ class Joining < DSLElement
 
 
 
-
+class XMML_Generator
+  def generate name, ports
+    p name, ports
+  end
+end
 
 class Muscle_Generator
  def generate_kernel (main_name, model_name, declarations, execution, params)

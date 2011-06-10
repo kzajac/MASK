@@ -1,12 +1,14 @@
 MultiScaleModel.generate do
 
-model :my_multi_model do
+application_module :my_multi_model do
 
        implementation_type :muscle_application
        
        
-    model :submodelA do
-       
+    application_module :submodelA do
+        
+        register_xmml_data
+        
         implementation_type :muscle_kernel
         
         
@@ -17,12 +19,13 @@ model :my_multi_model do
 
 	execution do
 	#TODO:
-        	declare_param :len=>4
+        	declare_param :len=>4, :start=>1, :stop=>10, :step=>1
+        	
                 declare_port :velocity, :double_array, :len
 		
 
 
-		loop :start_time=>0, :stop_time=>10, :step_time=>1 do
+		loop :start_time=>:start, :stop_time=>:stop, :step_time=>:step do
 
 
   			execute "
@@ -41,7 +44,7 @@ model :my_multi_model do
 
     end
 
-    model :submodelB do
+    application_module :submodelB do
 
 	implementation_type :muscle_kernel
 
@@ -57,7 +60,7 @@ model :my_multi_model do
 
 	loop :start_time=>0, :stop_time=>10, :step_time=>1 do
 
-  		receive :velocity
+  		receive :velocity #:for_boundary_condition
 
   		execute "
                         System.out.println(\"Receiving velocity values\");
@@ -84,12 +87,7 @@ model :my_multi_model do
 	join :modA, :modB  do 
 	    tie :velocity, :velocity
 	end
-	instance  :modAa, :submodelA, :domainA
-	instance  :modBa, :submodelB, :domainA
 
-	join :modAa, :modBa  do 
-	    tie :velocity, :velocity
-	end
     end
 
 end # my_multi_model
