@@ -388,6 +388,15 @@ public class #{instance_name} extends muscle.core.kernel.CAController {
    end 
  end
  def generate_get_scale time_scale, space_scale
+   @my_file.puts "
+\tpublic muscle.core.Scale getScale() {
+\t\tjavax.measure.DecimalMeasure dt = javax.measure.DecimalMeasure.valueOf(new java.math.BigDecimal(1), javax.measure.unit.SI.SECOND);
+\t\tjavax.measure.DecimalMeasure dx = javax.measure.DecimalMeasure.valueOf(new java.math.BigDecimal(1), javax.measure.unit.SI.METER);
+\t\treturn new Scale(dt,dx);
+\t}
+"
+ end
+ def generate_get_scale_full time_scale, space_scale
 
    @my_file.puts "
 \tpublic muscle.core.Scale getScale() {
