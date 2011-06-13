@@ -38,14 +38,14 @@ class MultiScaleModel < DSLElement
  
  def self.application_module(namesym, &blk)
 
-   #@main_model_name=namesym
+   
    @main_model_name=namesym.to_s.gsub /(_)/, ""
    @main_model_name.capitalize!
    p @main_model_name
   name=namesym.to_s.capitalize
   klass = Class.new(Model)
   @model=Element.create_unique_object(name, klass, &blk)
- # p @model
+ 
  end
 
  def self.generate_it()
@@ -57,7 +57,7 @@ end
 
 
 class Model < Element
- attr_accessor  :models, :execution, :implementation_type, :name, :register_xmml_data
+ attr_accessor :timescale, :spacescale, :models, :execution, :implementation_type, :name, :register_xmml_data
 
  def initialize(name=nil)
   super
@@ -83,7 +83,11 @@ class Model < Element
    @timescale[properties]= time_scale_prop[properties]
   end
  end
+def self.spacescale(space_scale_prop)
+   @spacescale ||= []
+   @spacescale.push(space_scale_prop)
 
+end
 def self.application_module(namesym, &blk)
   name=namesym.to_s.capitalize
   @models||=Hash.new
@@ -203,7 +207,7 @@ class Execution < Element
   def self.execute(string_code)
    @execution||=[]
    @execution.push([:execute, string_code])
-   #puts string_code
+   
   end
 
  
@@ -231,7 +235,7 @@ class Execution < Element
 
   def generate  my_model, main_name
    # TODO - other types
-   # p my_model.implementation_type
+   
    if(my_model.register_xmml_data)
      XMML_Generator.new.generate my_model.name, @declarations
    end
@@ -266,8 +270,8 @@ class Execution < Element
   else
      if (my_model.implementation_type==:muscle_kernel)
          generator=Muscle_Generator.new
-         
-         generator.generate_kernel(main_name, my_model.name, @declarations, @execution, @params)
+         p my_model.timescale
+         generator.generate_kernel(main_name, my_model.name, @declarations, @execution, @params, my_model.timescale, my_model.spacescale)
         
          generator.generate_build_xml main_name
 
@@ -305,7 +309,7 @@ class XMML_Generator
 end
 
 class Muscle_Generator
- def generate_kernel (main_name, model_name, declarations, execution, params)
+ def generate_kernel (main_name, model_name, declarations, execution, params, timescale,spacescale)
        # @generated_kernels||=[]
        # @generated_kernels.push instance_name
      	_model_name_capital=model_name.to_s.capitalize
@@ -323,7 +327,7 @@ class Muscle_Generator
                 @my_file=f
      		generate_prefix _model_name_capital
      		generate_ports declarations 
-     		generate_get_scale
+     		generate_get_scale timescale, spacescale
         generate_execution_begin
      		generate_execution_declarations model_name, declarations, params
      		generate_execution_body execution, 1
@@ -383,14 +387,41 @@ public class #{instance_name} extends muscle.core.kernel.CAController {
 
    end 
  end
- def generate_get_scale
+ def generate_get_scale time_scale, space_scale
+
    @my_file.puts "
 \tpublic muscle.core.Scale getScale() {
-\t\tDecimalMeasure<Duration> dt = DecimalMeasure.valueOf(new BigDecimal(1), SI.SECOND);
-\t\tDecimalMeasure<Length> dx = DecimalMeasure.valueOf(new BigDecimal(1), SI.METER);
-\t\treturn new Scale(dt,dx);
-\t}
-   "
+"
+
+   
+p "timescale#{time_scale}"
+    unless (time_scale.nil?)
+        @my_file.puts "
+    \t\tDecimalMeasure<Duration> dt = DecimalMeasure.valueOf(new BigDecimal(#{time_scale[:delta]}), SI.SECOND);
+    "
+    end
+    unless (space_scale.nil?)
+        string_for_scale_constructor="";
+        space_scale.each do |scale|
+            @my_file.puts "\t\tDecimalMeasure<Length> d#{scale[:id]} = DecimalMeasure.valueOf(new BigDecimal(#{scale[:delta]}), SI.METER);"
+            string_for_scale_constructor=string_for_scale_constructor+" d#{scale[:id]}, "
+        end
+        
+        @my_file.puts " \t\treturn new Scale(dt, #{string_for_scale_constructor.chomp(", ")} );"
+        
+       else
+         unless (time_scale.nil?)
+          @my_file.puts " \t\treturn new Scale(dt);"
+         end
+    end
+
+ if (time_scale.nil? && space_scale.nil?)
+    @my_file.puts "\t return null;"
+ end
+  @my_file.puts "
+       \t}
+    "
+
  end
 def generate_execution_begin
       @my_file.puts "\tprotected void execute(){

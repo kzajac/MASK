@@ -16,7 +16,8 @@ application_module :my_multi_model do
 	language :java
 
 	timescale :delta=>10, :max=>100
-
+        spacescale :id=>:x, :delta=>6, :max=>100
+        spacescale :id=>:y, :delta=>7, :max=>100
 	execution do
 	#TODO:
         	declare_param :len=>4, :start=>1, :stop=>10, :step=>1
@@ -51,7 +52,7 @@ application_module :my_multi_model do
 
 	language :java
 
-	timescale :delta=>10, :max=>100
+
 
 	execution do
 
