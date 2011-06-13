@@ -1,0 +1,113 @@
+MultiScaleModel.generate do
+
+application_module :ant_end_elephant do
+
+       implementation_type :muscle_application
+       
+       
+    application_module :elephant do
+        
+        register_xmml_data
+        
+        implementation_type :muscle_kernel
+        
+        
+
+	language :java
+
+	timescale :delta=>10, :max=>100
+        spacescale :id=>:x, :delta=>10, :max=>100
+        
+	execution do
+
+        	declare_param :start=>1, :stop=>100, :step=>10
+        	
+                declare_port :myDistance, :double_array, 1
+                declare_port :antDistance, :double_array
+                
+		execute "myDistance[0]=0.0;"
+
+                
+		loop :start_time=>:start, :stop_time=>:stop, :step_time=>:step do
+
+  		
+  			execute "
+                        System.out.println(\"Elephant is walking...\");
+  	                
+    			myDistance[0]+=10.0;
+  			
+  			"
+			send :myDistance
+  			receive :antDistance
+
+		end
+  	        execute "
+                 System.out.println(\"The end\");
+                "
+	end
+
+    end
+
+    application_module :ant do
+
+	implementation_type :muscle_kernel
+
+        register_xmml_data
+
+	language :java
+
+	timescale :delta=>10, :max=>100
+        spacescale :id=>:x, :delta=>1, :max=>100
+
+
+	execution do
+
+	declare_port :myDistance, :double_array, 1
+	declare_port :elephantDistance, :double_array
+
+        
+
+	loop :start_time=>0, :stop_time=>10, :step_time=>1 do
+
+			receive :elephantDistance
+  	
+  		execute "
+                        System.out.println(\"Ant have received Elephant distance:\"+ elephantDistance[0]);
+  			int i;
+  		        for (i=(int)myDistance[0]; i<(int)elephantDistance[0]; i++){
+  		          System.out.println (\"Ant is trying to catch Elephant in step \"+ i);	
+  		          myDistance[0]+=1.0;
+    		        }
+    		        "
+    		        send :myDistance
+  		
+  		
+	end
+        execute "
+                 System.out.println(\"The end\");
+        "
+
+	end
+
+    end
+
+
+
+    execution  do
+
+	instance  :big, :elephant, :domainA
+	instance  :small, :ant, :domainA
+
+	join :big, :small  do 
+	    tie :myDistance, :elephantDistance
+	    tie :antDistance, :myDistance
+	end
+
+    end
+
+end # my_multi_model
+
+
+end #generate
+
+
