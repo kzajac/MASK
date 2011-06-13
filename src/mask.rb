@@ -159,7 +159,7 @@ class Execution < Element
      end
    end
   end
-  def self.instance(name, nameMod, domain)
+  def self.instance(name, nameMod, domain=nil)
    @instances ||= Hash.new
    if @instances.has_key?(name)
       puts "error!!! double instance name"

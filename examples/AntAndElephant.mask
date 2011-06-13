@@ -16,14 +16,14 @@ application_module :ant_end_elephant do
 	language :java
 
 	timescale :delta=>1, :max=>10
-        spacescale :id=>:x, :delta=>10, :max=>100
+        spacescale :id=>:x, :delta=>"1 m", :max=>"10 m"
         
 	execution do
 
         	declare_param :start=>1, :stop=>10, :step=>1
         	
                 declare_port :myDistance, :double_array, 1
-                declare_port :antDistance, :double_array
+                declare_port :otherDistance, :double_array
                 
 		execute "myDistance[0]=0.0;"
 
@@ -34,11 +34,11 @@ application_module :ant_end_elephant do
   			execute "
                         System.out.println(\"Elephant is walking...\");
   	                
-    			myDistance[0]+=10.0;
+    			myDistance[0]+=1.0;
   			
   			"
 			send :myDistance
-  			receive :antDistance
+  			receive :otherDistance
 
 		end
   	        execute "
@@ -48,6 +48,77 @@ application_module :ant_end_elephant do
 
     end
 
+    application_module :ant2elephant do
+	implementation_type :muscle_kernel
+#        junction_type :fan_in
+        
+        register_xmml_data
+
+	language :java
+
+
+
+	execution do
+                declare_port :inDistance, :double_array
+                declare_port :outDistance, :double_array, 1
+	declare_param :start=>1, :stop=>10, :step=>1
+        
+                
+		loop :start_time=>:start, :stop_time=>:stop, :step_time=>:step do
+
+  		
+  			execute "
+                        System.out.println(\"ant2elephant is transforming scale...\");
+                        "
+  			receive :inDistance
+  	                execute "
+  	                       outDistance[0]=0.01*inDistance[0];
+  	                "
+			send :outDistance
+
+		end
+  	        execute "
+                 System.out.println(\"The end\");
+                "
+	
+        end    
+    end
+    application_module :elephant2ant do
+	implementation_type :muscle_kernel
+#        junction_type :fan_in
+        
+        register_xmml_data
+
+	language :java
+
+
+
+	execution do
+                declare_port :inDistance, :double_array
+                declare_port :outDistance, :double_array, 1
+	declare_param :start=>1, :stop=>10, :step=>1
+        
+                
+		loop :start_time=>:start, :stop_time=>:stop, :step_time=>:step do
+
+  		
+  			execute "
+                        System.out.println(\"elephant2ant is transforming scale...\");
+                        "
+  			receive :inDistance
+  	                execute "
+  	                       outDistance[0]=100*inDistance[0];
+  	                "
+			send :outDistance
+
+		end
+  	        execute "
+                 System.out.println(\"The end\");
+                "
+	
+        end    
+    end
+    
     application_module :ant do
 
 	implementation_type :muscle_kernel
@@ -57,7 +128,7 @@ application_module :ant_end_elephant do
 	language :java
 
 	timescale :delta=>1, :max=>10
-        spacescale :id=>:x, :delta=>1, :max=>100
+        spacescale :id=>:x, :delta=>"1 cm", :max=>"100 m"
 
 
 	execution do
@@ -65,18 +136,18 @@ application_module :ant_end_elephant do
         declare_param :start=>1, :stop=>10, :step=>1
 
 	declare_port :myDistance, :double_array, 1
-	declare_port :elephantDistance, :double_array
+	declare_port :otherDistance, :double_array
 
         
 
 	loop :start_time=>0, :stop_time=>10, :step_time=>1 do
 
-			receive :elephantDistance
+			receive :otherDistance
   	
   		execute "
-                        System.out.println(\"Ant have received Elephant distance:\"+ elephantDistance[0]);
+                        System.out.println(\"Ant have received Elephant distance:\"+ otherDistance[0]);
   			int i;
-  		        for (i=(int)myDistance[0]; i<(int)elephantDistance[0]; i++){
+  		        for (i=(int)myDistance[0]; i<(int)otherDistance[0]; i++){
   		          System.out.println (\"Ant is trying to catch Elephant in step \"+ i);	
   		          myDistance[0]+=1.0;
     		        }
@@ -99,13 +170,21 @@ application_module :ant_end_elephant do
 
 	instance  :big, :elephant, :domainA
 	instance  :small, :ant, :domainA
+	instance  :a2e, :ant2elephant
+	instance  :e2a, :elephant2ant
 
-	join :big, :small  do 
-	    tie :myDistance, :elephantDistance
+	join :big, :e2a  do 
+	    tie :myDistance, :inDistance
+	end
+	join :e2a, :small  do 
+	    tie :outDistance, :otherDistance
 	end
 	join :small, :big  do 
-	    tie :myDistance, :antDistance
+	    tie :myDistance, :otherDistance
 	end
+#	join :a2e, :big  do 
+#	    tie :outDistance, :antDistance
+#	end
 
     end
 
