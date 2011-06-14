@@ -41,7 +41,7 @@ class MultiScaleModel < DSLElement
    
    @main_model_name=namesym.to_s.gsub /(_)/, ""
    @main_model_name.capitalize!
-   p @main_model_name
+   
   name=namesym.to_s.capitalize
   klass = Class.new(Model)
   @model=Element.create_unique_object(name, klass, &blk)
@@ -57,7 +57,7 @@ end
 
 
 class Model < Element
- attr_accessor :timescale, :spacescale, :models, :execution, :implementation_type, :name, :register_xmml_data
+ attr_accessor :timescale, :spacescale, :models, :execution, :implementation_type, :name, :register_xmml_data, :junction_type
 
  def initialize(name=nil)
   super
@@ -81,11 +81,17 @@ class Model < Element
   @timescale ||= Hash.new
   time_scale_prop.each_key do |properties|
    @timescale[properties]= time_scale_prop[properties]
+
+   
   end
  end
 def self.spacescale(space_scale_prop)
    @spacescale ||= []
    @spacescale.push(space_scale_prop)
+
+end
+def self.junction_type(juction_type)
+   @junction_type=juction_type
 
 end
 def self.application_module(namesym, &blk)
@@ -100,6 +106,26 @@ def self.execution(&blk)
   klass = Class.new(Execution)
   name=self.name.to_s+"Execution"
   @execution=Element.create_unique_object(name, klass, &blk)
+  
+  
+  @execution.class.class_exec(@timescale, @spacescale) do |t, s|
+        unless (t.nil?)
+
+        
+            t.each_key do |key|
+              declare_param "value_time_#{key}".to_sym=>t[key].split(' ')[0].to_i
+            end
+        end
+        unless (s.nil?)
+          s.each do |val|
+            declare_param "value_space_#{val[:id]}_delta".to_sym=>val[:delta].split(' ')[0].to_i
+            declare_param "value_space_#{val[:id]}_max".to_sym=>val[:max].split(' ')[0].to_i
+          end
+        end
+     end
+
+  @execution.copyvars
+  
  end
 
  def generate main_name
@@ -237,7 +263,7 @@ class Execution < Element
    # TODO - other types
    
    if(my_model.register_xmml_data)
-     XMML_Generator.new.generate my_model.name, @declarations
+     XMML_Generator.new.generate my_model.name, @declarations, @params, my_model.spacescale, my_model.timescale, my_model.junction_type
    end
    
    if (my_model.implementation_type==:muscle_application)
@@ -270,7 +296,7 @@ class Execution < Element
   else
      if (my_model.implementation_type==:muscle_kernel)
          generator=Muscle_Generator.new
-         p my_model.timescale
+        
          generator.generate_kernel(main_name, my_model.name, @declarations, @execution, @params, my_model.timescale, my_model.spacescale)
         
          generator.generate_build_xml main_name
@@ -303,8 +329,25 @@ class Joining < DSLElement
 
 
 class XMML_Generator
-  def generate name, ports
-    p name, ports
+  def generate name, ports, params, spacescale, timescale, junctiontype
+    unless (timescale.nil? && spacescale.nil?)
+      p "------------submodule-------------"
+    else
+      p "------------junction--------------"
+    end
+    p "Name " +  name
+   
+    p "timescale:"
+    p timescale
+      p "spacescale:"
+      p spacescale
+    unless (junctiontype.nil?)
+      p "juction_type #{junctiontype}"
+    end
+      p "Ports:"
+    p ports
+    p "Parameters:"
+    p params
   end
 end
 
@@ -403,7 +446,7 @@ public class #{instance_name} extends muscle.core.kernel.CAController {
 "
 
    
-p "timescale#{time_scale}"
+#p "timescale#{time_scale}"
     unless (time_scale.nil?)
         @my_file.puts "
     \t\tDecimalMeasure<Duration> dt = DecimalMeasure.valueOf(new BigDecimal(#{time_scale[:delta]}), SI.SECOND);
@@ -502,7 +545,7 @@ end
  end
 
 def generate_build_xml main_name
-  p main_name
+
   _dir_name="generatedExamples"
    Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
   _dir_name+="/#{main_name}"
