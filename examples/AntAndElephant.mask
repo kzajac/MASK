@@ -24,6 +24,7 @@ application_module :ant_end_elephant do
                 declare_port :myDistance, :double_array, 1
                 declare_port :ok, :double_array
                 declare_param :initial_distance=>0
+
 		execute "myDistance[0]=(double) initial_distance;
 			System.out.println (\"Elephant inital distance is \"+ initial_distance);
     	
@@ -57,13 +58,14 @@ application_module :ant_end_elephant do
         register_xmml_data
 
 	language :java
+	
 
 
 
 	execution do
                 declare_port :inDistance, :double_array
                 declare_port :outDistance, :double_array, 1
-	declare_param :stop=>10, :step=>1
+		declare_param :stop=>10, :step=>1
         
                 
 		loop :start_time=>0, :stop_time=>:stop, :step_time=>:step do
@@ -92,7 +94,7 @@ application_module :ant_end_elephant do
 
         register_xmml_data
 
-	language :java
+	language :java, :extra_imports=>"java.io.*"
 
         spacescale :id=>:x, :delta=>"1 cm", :max=>"1000 m"
 
@@ -102,10 +104,34 @@ application_module :ant_end_elephant do
 
 	declare_port :ok, :double_array, 1
 	declare_port :otherDistance, :double_array
-        declare_param :initial_distance=>0
+        declare_param :initial_distance=>0, :in_file=>"my_food.txt", :out_file=>"step_log.txt"
+
         execute "
-    		double myDistance=(double)initial_distance;
-    		System.out.println (\"Ant inital distance is \"+ initial_distance);
+                try{
+                FileReader fr = new FileReader(in_file);
+                    int ch;
+                        do {
+                              ch = fr.read();
+                              if (ch != -1)
+                              System.out.print((char) ch);
+                           } while (ch != -1);
+                        fr.close();
+                    }
+                    catch(Exception e ){
+                    System.err.println(\"Error: \" + e.getMessage());
+                    
+                    }
+                BufferedWriter out = null;
+                      
+                try{
+            	    FileWriter fstream = new FileWriter(out_file);
+            	    out = new BufferedWriter(fstream);
+            	    out.write (\"hello\");
+                }catch (Exception e){
+            	    System.err.println(\"Error: \" + e.getMessage());
+                }        
+    	        double myDistance=(double)initial_distance;
+    	        System.out.println (\"Ant inital distance is \"+ initial_distance);
     		"        
 
 	loop :start_time=>:initial_distance, :stop_time=>:value_space_x_max, :step_time=>:value_space_x_delta do
@@ -116,9 +142,17 @@ application_module :ant_end_elephant do
                         System.out.println(\"Ant have received Elephant distance:\"+ otherDistance[0] + \" cm\");
   			int i;
   		        for (i=(int)myDistance; i<(int)otherDistance[0]; i++){
-  		          System.out.println (\"Ant is trying to catch Elephant in step \"+ i +\" cm\");	
-  		          myDistance+=1.0;
+  		           myDistance+=1.0;
     		        }
+    		        System.out.println (\"Ant is trying to catch Elephant - now the distance is \" + (int) myDistance+\" cm\");	
+  		        try{
+  		           
+    		              out.write (\"Ant is trying to catch Elephant - now the distance is \" + (int) myDistance+\" cm\");	
+  		           }
+  		           catch(Exception e){
+            			System.err.println(\"Error: \" + e.getMessage());
+            		   }  
+  		         
     		        ok[0]=1.0;
     		        "
     		        send :ok
@@ -126,6 +160,14 @@ application_module :ant_end_elephant do
   		
 	end
         execute "
+                 try{
+            		out.close();
+                 
+                 }
+                 catch(Exception e){
+            			System.err.println(\"Error: \" + e.getMessage());
+            	 }  
+  		
                  System.out.println(\"The end\");
         "
 

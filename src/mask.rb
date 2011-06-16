@@ -1,4 +1,6 @@
 require "ftools"
+require "net/http" 
+require "uri"
 
 class DSLElement
  def copyvars
@@ -57,7 +59,7 @@ end
 
 
 class Model < Element
- attr_accessor :timescale, :spacescale, :models, :execution, :implementation_type, :name, :register_xmml_data, :junction_type
+ attr_accessor :timescale, :spacescale, :models, :execution, :implementation_type, :name, :register_xmml_data, :junction_type, :extra_imports
 
  def initialize(name=nil)
   super
@@ -73,9 +75,25 @@ class Model < Element
    
  end
  
- def self.language(mtype)
+ def self.language(mtype, additional_data=nil)
   @language = mtype
- end
+  if (@language==:java)
+    unless additional_data.nil?
+      additional_data.each_key do |key|
+        if (key==:extra_imports)
+          @extra_imports=additional_data[key]
+         
+        end
+
+
+      end
+    end
+
+   
+  end
+
+  end
+ 
  
  def self.timescale(time_scale_prop)
   @timescale ||= Hash.new
@@ -109,6 +127,9 @@ def self.execution(&blk)
   
   
   @execution.class.class_exec(@timescale, @spacescale) do |t, s|
+ # @execution.class.class_eval do
+  #  t=@timescale
+   # s=@spacescale
         unless (t.nil?)
 
         
@@ -297,7 +318,7 @@ class Execution < Element
      if (my_model.implementation_type==:muscle_kernel)
          generator=Muscle_Generator.new
         
-         generator.generate_kernel(main_name, my_model.name, @declarations, @execution, @params, my_model.timescale, my_model.spacescale)
+         generator.generate_kernel(main_name, my_model, @declarations, @execution, @params)
         
          generator.generate_build_xml main_name
 
@@ -330,8 +351,10 @@ class Joining < DSLElement
 
 class XMML_Generator
   def generate name, ports, params, spacescale, timescale, junctiontype
-    unless (timescale.nil? && spacescale.nil?)
+     
+     unless (timescale.nil? && spacescale.nil?)
       p "------------submodule-------------"
+
     else
       p "------------junction--------------"
     end
@@ -352,9 +375,14 @@ class XMML_Generator
 end
 
 class Muscle_Generator
- def generate_kernel (main_name, model_name, declarations, execution, params, timescale,spacescale)
+ def generate_kernel (main_name, my_model, declarations, execution, params)
        # @generated_kernels||=[]
        # @generated_kernels.push instance_name
+
+   model_name=my_model.name
+   model_extra_imports=my_model.extra_imports
+   timescale=my_model.timescale
+   spacescale=my_model.spacescale
      	_model_name_capital=model_name.to_s.capitalize
 	_dir_name="generatedExamples"
         Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
@@ -368,7 +396,7 @@ class Muscle_Generator
         Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
      	open("#{_dir_name}/#{_model_name_capital}.java", 'w') { |f|
                 @my_file=f
-     		generate_prefix _model_name_capital
+     		generate_prefix _model_name_capital, model_extra_imports
      		generate_ports declarations 
      		generate_get_scale timescale, spacescale
         generate_execution_begin
@@ -379,7 +407,7 @@ class Muscle_Generator
         }
  end
 
- def generate_prefix instance_name
+ def generate_prefix instance_name, model_extra_imports
    @my_file.puts "
 
 package mask.example;
@@ -394,7 +422,13 @@ import javax.measure.DecimalMeasure;
 import javax.measure.quantity.Duration;
 import javax.measure.quantity.Length;
 import javax.measure.unit.SI;
+"
+unless model_extra_imports.nil?
+  @my_file.puts "import #{model_extra_imports};"
 
+end
+
+  @my_file.puts "
 
 /**
 a simple java example kernel generated from MASK skeleton
@@ -496,6 +530,8 @@ end
            when Float
             # @my_file.puts "\t\tdouble #{name} = #{params[name]};"
              @my_file.puts "\t\tdouble #{name} = CxADescription.ONLY.getDoubleProperty(#{unique_key});"
+          when  String
+            @my_file.puts "\t\tString #{name} = CxADescription.ONLY.getProperty(#{unique_key});"
           else
             p "Unrecognized type of parameter for #{name}"
           end
@@ -584,24 +620,31 @@ m.add_classpath File.expand_path(File.dirname(__FILE__))+\"/../build/#{main_name
 cxa = Cxa.LAST
 
 cxa.env[\"cxa_path\"] = File.dirname(__FILE__)
+"
 
+  
+  f. puts "
 # declare kernels
 "
-  
-      
  
-  unless (params.nil?)
-   params.each_key do |name|
-
-    f.puts "cxa.env[\"#{name}\"]=#{params[name]}"
-   end
-	end
-  
-  
-    instances.each_key do |name|
+   instances.each_key do |name|
     #p instances[name]
     f.puts "cxa.add_kernel('#{name}', \"mask.example.#{instances[name][0].to_s.capitalize}\")"
-	  end
+	 end
+
+
+     f. puts "
+# parameters
+"
+   unless (params.nil?)
+   params.sort.each do |name|
+    if (name[1].is_a?(String))
+     f.puts "cxa.env[\"#{name[0]}\"]=\"#{name[1]}\""
+    else
+    f.puts "cxa.env[\"#{name[0]}\"]=#{name[1]}"
+    end
+   end
+	end
   
 
 	f.puts "
