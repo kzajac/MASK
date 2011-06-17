@@ -121,15 +121,9 @@ application_module :ant_end_elephant do
                     System.err.println(\"Error: \" + e.getMessage());
                     
                     }
-                BufferedWriter out = null;
-                      
-                try{
-            	    FileWriter fstream = new FileWriter(out_file);
-            	    out = new BufferedWriter(fstream);
-            	    out.write (\"hello\");
-                }catch (Exception e){
-            	    System.err.println(\"Error: \" + e.getMessage());
-                }        
+                BufferedWriter out=null;
+                FileWriter fstream=null;      
+  		
     	        double myDistance=(double)initial_distance;
     	        System.out.println (\"Ant inital distance is \"+ initial_distance);
     		"        
@@ -143,15 +137,19 @@ application_module :ant_end_elephant do
   			int i;
   		        for (i=(int)myDistance; i<(int)otherDistance[0]; i++){
   		           myDistance+=1.0;
-    		        }
-    		        System.out.println (\"Ant is trying to catch Elephant - now the distance is \" + (int) myDistance+\" cm\");	
-  		        try{
-  		           
-    		              out.write (\"Ant is trying to catch Elephant - now the distance is \" + (int) myDistance+\" cm\");	
+    		          try{
+		              fstream = new FileWriter(out_file, true);
+                              out = new BufferedWriter(fstream);
+    		              out.write (\"Ant is trying to catch Elephant - now the distance is \" + (int) myDistance+\" cm\\n\");	
+			      out.close();
+
   		           }
   		           catch(Exception e){
             			System.err.println(\"Error: \" + e.getMessage());
             		   }  
+  		
+    		        }
+    		        System.out.println (\"Ant is trying to catch Elephant - now the distance is \" + (int) myDistance+\" cm\");	
   		         
     		        ok[0]=1.0;
     		        "
@@ -160,13 +158,6 @@ application_module :ant_end_elephant do
   		
 	end
         execute "
-                 try{
-            		out.close();
-                 
-                 }
-                 catch(Exception e){
-            			System.err.println(\"Error: \" + e.getMessage());
-            	 }  
   		
                  System.out.println(\"The end\");
         "
