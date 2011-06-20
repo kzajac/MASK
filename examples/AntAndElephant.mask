@@ -16,6 +16,7 @@ application_module :ant_end_elephant do
 	language :java
 
         spacescale :id=>:x, :delta=>"1 m", :max=>"10 m"
+        timescale :delta=>"1 s", :max=>"10 s"
         
 	execution do
 
@@ -97,6 +98,7 @@ application_module :ant_end_elephant do
 	language :java, :extra_imports=>"java.io.*"
 
         spacescale :id=>:x, :delta=>"1 cm", :max=>"1000 m"
+        timescale :delta=>"1 min", :max=>"10 min"
 
 
 	execution do

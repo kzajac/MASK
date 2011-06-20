@@ -1,6 +1,7 @@
 require "ftools"
 require "net/http" 
 require "uri"
+require "rest_client"
 
 class DSLElement
  def copyvars
@@ -16,7 +17,7 @@ class Element < DSLElement
  def initialize(name=nil)
   @name = name
  end
-
+ 
  def self.create_unique_object(name, klass, &blk)
   Object.const_set(name, klass) if not Object.const_defined?(name)
   p = Object.const_get(name).new(name)
@@ -350,27 +351,93 @@ class Joining < DSLElement
 
 
 class XMML_Generator
+
+  def create_ports_array ports
+   ports_array||=[]
+    ports.each_key do |key|
+      case(ports[key][2])
+      when :send
+        ports_array.push({"id"=>key.to_s,"datatype"=>ports[key][0].to_s,"inout"=>"out", "operator"=>ports[key][3].to_s})
+      when :receive
+        ports_array.push({"id"=>key.to_s,"datatype"=>ports[key][0].to_s,"inout"=>"in", "operator"=>ports[key][3].to_s})
+      end
+    end
+    return ports_array
+  end
+  def create_hash_time_scale timescale
+       hash_time_scale||={}
+      if (timescale.nil?)
+         hash_time_scale={"delta"=>"1", "max"=>"1"}
+       else
+         hash_time_scale={"delta"=>timescale[:delta], "max"=>timescale[:max]}
+       end
+      return hash_time_scale
+  end
+  def create_array_space_scales spacescale
+        array_space_scales||=[]
+        unless spacescale.nil?
+             spacescale.each do |spaces|
+
+                array_space_scales.push({"max"=>spaces[:max], "delta"=>spaces[:delta], "id"=>spaces[:id]})
+             end
+        end
+        return array_space_scales
+
+  end
   def generate name, ports, params, spacescale, timescale, junctiontype
      
      unless (timescale.nil? && spacescale.nil?)
       p "------------submodule-------------"
+       
+         hash_time_scale=create_hash_time_scale timescale
+         
+         array_ports=create_ports_array(ports)
+       
+       unless (spacescale.nil?)
+              array_space_scale=create_array_space_scales spacescale
+              res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Submodel', {"id"=>"#{name}", "name"=>"#{name}", "class"=>"mask.example.#{name}", "timescale"=>hash_time_scale,
+                 "spacescales[]"=>array_space_scale, "ports[]"=>array_ports}
+       
+       else
+              res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Submodel', {"id"=>"#{name}", "name"=>"#{name}", "class"=>"mask.example.#{name}", "timescale"=>hash_time_scale,
+                "ports"=>array_ports}
+              
+       end
+       if (res.code==200)
+         p"module #{name} registered !"
+       else
+         p "registration error", res.to_str
+        end
 
+
+
+     
+   
     else
       p "------------junction--------------"
+      array_ports=create_ports_array(ports)
+      res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Junction', {"id"=>"#{name}", "name"=>"#{name}", "class"=>"mask.example.#{name}", "type"=>junctiontype.to_s,
+                 "ports[]"=>array_ports}
+      if (res.code==200)
+         p"juction #{name} registered !"
+      else
+         p "registration error", res.to_str
+      end
+
     end
-    p "Name " +  name
+    #p "Name " +  name
    
-    p "timescale:"
-    p timescale
-      p "spacescale:"
-      p spacescale
-    unless (junctiontype.nil?)
-      p "juction_type #{junctiontype}"
-    end
-      p "Ports:"
-    p ports
-    p "Parameters:"
-    p params
+   # p "timescale:"
+   # p timescale
+    #  p "spacescale:"
+     # p spacescale
+    #unless (junctiontype.nil?)
+     # p "juction_type #{junctiontype}"
+    #end
+    #  p "Ports:"
+   # p ports
+    #p "Parameters:"
+   # p params
   end
 end
 
