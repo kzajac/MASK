@@ -1,11 +1,11 @@
 MultiScaleModel.generate do
 
-    
+application_module :loosely do    
     application_module :lattice_constant_calculation do
 
 	implementation_type :lammps_snippet
 
-    #    register_xmml_data
+        register_xmml_data
 
 	language :lammps
 
@@ -126,5 +126,5 @@ end
 end
 
 end 
-
+end
 

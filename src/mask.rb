@@ -165,8 +165,9 @@ def self.execution(&blk)
              end
    end
    @register_xmml_data||=false
-  
-   @execution.generate self, main_name
+   unless @execution.nil?
+    @execution.generate self, main_name
+   end
 
  end
 end
@@ -439,9 +440,9 @@ class XMML_Generator
   def determine_configuration_file implementation_type, execution
     if (implementation_type.to_s.include? "snippet")
       execution.each do |element|
-              puts element
+      
               if (element[0]==:execute)
-                return element[1].to_s
+                return element[1]
               end
             end
       
@@ -479,7 +480,7 @@ class XMML_Generator
          if (implementation_type==:muscle_kernel)
             res=RestClient.post url, {"interpreter"=>determine_interpreter(implementation_type),"bundle_location"=>"#{$jar_final_location}/#{main_name.downcase}.jar","class"=>"mask.example.#{name}", "parameters[]"=>params_array  }
          else
-            res=RestClient.post url, {"interpreter"=>determine_interpreter(implementation_type),"configuration_file"=>config, "parameters[]"=>params_array  }
+            res=RestClient.post url, {"interpreter"=>determine_interpreter(implementation_type),"config_file"=>config, "parameters[]"=>params_array  }
          end
      p res.to_str
    
@@ -494,14 +495,15 @@ class XMML_Generator
          p "registration error", res.to_str
       end
       url="http://gs2.mapper-project.eu:1234/add_implementation/Junction/#{name}/"
-         p url
+         
          params_array=create_array_params(params)
          config=determine_configuration_file implementation_type, execution
+        
          if (implementation_type==:muscle_kernel)
             res=RestClient.post url, {"interpreter"=>determine_interpreter(implementation_type),"bundle_location"=>"#{$jar_final_location}/#{main_name.downcase}.jar","class"=>"mask.example.#{name}", "parameters[]"=>params_array  }
          else
            
-            res=RestClient.post url, {"interpreter"=>determine_interpreter(implementation_type),"configuration_file"=>config, "parameters[]"=>params_array  }
+            res=RestClient.post url, {"interpreter"=>determine_interpreter(implementation_type),"config_file"=>config, "parameters[]"=>params_array  }
          end
          
 if (res.code==200)
@@ -540,7 +542,7 @@ class Snippet_Generator
 
      	open("#{_dir_name}/#{_model_name_capital}.snipet", 'w') { |f|
             execution.each do |element|
-              puts element
+             
               if (element[0]==:execute)
                 f.puts element[1]
               end
