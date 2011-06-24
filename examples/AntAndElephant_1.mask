@@ -5,9 +5,9 @@ application_module :ant_end_elephant do
        implementation_type :muscle_application
        
        
-    application_module :elephantv2 do
+    application_module :elephant do
         
-#        register_xmml_data
+        register_xmml_data
         
         implementation_type :muscle_kernel
         
@@ -24,7 +24,6 @@ application_module :ant_end_elephant do
         	
                 declare_port :myDistance, :double_array, 1
                 declare_port :ok, :double_array
-               
                 declare_param :initial_distance=>0
 
 		execute "myDistance[0]=(double) initial_distance;
@@ -53,11 +52,11 @@ application_module :ant_end_elephant do
 
     end
 
-    application_module :elephant2antv2 do
+    application_module :elephant2ant do
 	implementation_type :muscle_kernel
         junction_type :fan_out
         
- #       register_xmml_data
+        register_xmml_data
 
 	language :java
 	
@@ -90,7 +89,7 @@ application_module :ant_end_elephant do
         end    
     end
     
-    application_module :antv2 do
+    application_module :ant do
 
 	implementation_type :muscle_kernel
 
@@ -107,15 +106,9 @@ application_module :ant_end_elephant do
 
 	declare_port :ok, :double_array, 1
 	declare_port :otherDistance, :double_array
-        declare_port :in_file, :file
         declare_param :initial_distance=>0, :in_file=>"my_food.txt", :out_file=>"step_log.txt"
 
-        receive :in_file
- 
         execute "
-
-                System.out.print(\"Ant: I am carrying metal (V=1cm^3). It weights \");
-
                 try{
                 FileReader fr = new FileReader(in_file);
                     int ch;
@@ -130,10 +123,15 @@ application_module :ant_end_elephant do
                     System.err.println(\"Error: \" + e.getMessage());
                     
                     }
-                  
-                  System.out.println (\" g. Not so heavy for me !\" );
-
-                     
+                BufferedWriter out = null;
+                      
+                try{
+            	    FileWriter fstream = new FileWriter(out_file);
+            	    out = new BufferedWriter(fstream);
+            	    out.write (\"hello\");
+                }catch (Exception e){
+            	    System.err.println(\"Error: \" + e.getMessage());
+                }        
     	        double myDistance=(double)initial_distance;
     	        System.out.println (\"Ant inital distance is \"+ initial_distance);
     		"        
@@ -151,11 +149,7 @@ application_module :ant_end_elephant do
     		        System.out.println (\"Ant is trying to catch Elephant - now the distance is \" + (int) myDistance+\" cm\");	
   		        try{
   		           
-                            BufferedWriter out = null;
-                 	    FileWriter fstream = new FileWriter(out_file);
-                	    out = new BufferedWriter(fstream);
-    		            out.write (\"Ant is trying to catch Elephant - now the distance is \" + (int) myDistance+\" cm\");	
-                	    out.close();
+    		              out.write (\"Ant is trying to catch Elephant - now the distance is \" + (int) myDistance+\" cm\");	
   		           }
   		           catch(Exception e){
             			System.err.println(\"Error: \" + e.getMessage());
@@ -168,7 +162,14 @@ application_module :ant_end_elephant do
   		
 	end
         execute "
-		
+                 try{
+            		out.close();
+                 
+                 }
+                 catch(Exception e){
+            			System.err.println(\"Error: \" + e.getMessage());
+            	 }  
+  		
                  System.out.println(\"The end\");
         "
 
@@ -180,9 +181,9 @@ application_module :ant_end_elephant do
 
     execution  do
 
-	instance  :big, :elephantv2, :domainA
-	instance  :small, :antv2, :domainA
-	instance  :e2a, :elephant2antv2
+	instance  :big, :elephant, :domainA
+	instance  :small, :ant, :domainA
+	instance  :e2a, :elephant2ant
 
 	join :big, :e2a  do 
 	    tie :myDistance, :inDistance

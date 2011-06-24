@@ -1,94 +1,5 @@
 MultiScaleModel.generate do
 
-application_module :ant_end_elephant do
-
-       implementation_type :muscle_application
-       
-       
-    application_module :elephantv2 do
-        
-#        register_xmml_data
-        
-        implementation_type :muscle_kernel
-        
-        
-
-	language :java
-
-        spacescale :id=>:x, :delta=>"1 m", :max=>"10 m"
-        timescale :delta=>"1 s", :max=>"10 s"
-        
-	execution do
-
-
-        	
-                declare_port :myDistance, :double_array, 1
-                declare_port :ok, :double_array
-               
-                declare_param :initial_distance=>0
-
-		execute "myDistance[0]=(double) initial_distance;
-			System.out.println (\"Elephant inital distance is \"+ initial_distance);
-    	
-		"
-
-                
-		loop :start_time=>:initial_distance, :stop_time=>:value_space_x_max, :step_time=>:value_space_x_delta do
-
-  		
-  			execute "
-                        
-    			myDistance[0]+=1.0;
-  		        System.out.println(\"Elephant is walking to \" +myDistance[0] + \" meters\");
-  	            	
-  			"
-			send :myDistance
-  			receive :ok
-
-		end
-  	        execute "
-                 System.out.println(\"The end\");
-                "
-	end
-
-    end
-
-    application_module :elephant2antv2 do
-	implementation_type :muscle_kernel
-        junction_type :fan_out
-        
- #       register_xmml_data
-
-	language :java
-	
-
-
-
-	execution do
-                declare_port :inDistance, :double_array
-                declare_port :outDistance, :double_array, 1
-		declare_param :stop=>10, :step=>1
-        
-                
-		loop :start_time=>0, :stop_time=>:stop, :step_time=>:step do
-
-  			receive :inDistance
-  	        
-  			execute "
-                        System.out.println(\"elephant2ant is transforming scale...\");
-                        "
-  		        execute "
-  	                       outDistance[0]=100*inDistance[0];
-  	                "
-			send :outDistance
-
-		end
-  	        execute "
-                 System.out.println(\"The end\");
-                "
-	
-        end    
-    end
     
     application_module :antv2 do
 
@@ -108,7 +19,7 @@ application_module :ant_end_elephant do
 	declare_port :ok, :double_array, 1
 	declare_port :otherDistance, :double_array
         declare_port :in_file, :file
-        declare_param :initial_distance=>0, :in_file=>"my_food.txt", :out_file=>"step_log.txt"
+        declare_param :initial_distance=>0, :in_file=>"density.txt", :out_file=>"step_log.txt"
 
         receive :in_file
  
@@ -178,27 +89,6 @@ application_module :ant_end_elephant do
 
 
 
-    execution  do
-
-	instance  :big, :elephantv2, :domainA
-	instance  :small, :antv2, :domainA
-	instance  :e2a, :elephant2antv2
-
-	join :big, :e2a  do 
-	    tie :myDistance, :inDistance
-	end
-	join :e2a, :small  do 
-	    tie :outDistance, :otherDistance
-	end
-	join :small, :big  do 
-	    tie :ok, :ok
-	end
-
-    end
-
-end # my_multi_model
-
-
-end #generate
+end 
 
 

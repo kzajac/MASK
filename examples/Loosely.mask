@@ -1,0 +1,130 @@
+MultiScaleModel.generate do
+
+    
+    application_module :lattice_constant_calculation do
+
+	implementation_type :lammps_snippet
+
+    #    register_xmml_data
+
+	language :lammps
+
+        spacescale :id=>:x, :delta=>"1 ang", :max=>"1000 ang"
+        timescale :delta=>"1 s", :max=>"10 s"
+
+
+	execution do
+        
+
+        declare_port :out_file, :file
+        declare_param :in_file=>"Al99.eam.alloy", :out_file=>"lammps_out.txt"
+
+        
+ 
+        execute " 
+         \# Find minimum energy fcc configuration
+         \# Mark Tschopp, 2010
+         
+         \# ---------- Initialize Simulation --------------------- 
+         clear 
+         units metal 
+         dimension 3 
+         boundary p p p 
+         atom_style atomic 
+         atom_modify map array
+         
+         \# ---------- Create Atoms --------------------- 
+         lattice 	fcc 4
+         region	box block 0 1 0 1 0 1 units lattice
+         create_box	1 box
+         
+         lattice	fcc 4 orient x 1 0 0 orient y 0 1 0 orient z 0 0 1  
+         create_atoms 1 box
+         replicate 1 1 1
+         
+         \# ---------- Define Interatomic Potential --------------------- 
+         pair_style eam/alloy 
+         pair_coeff * * Al99.eam.alloy Al
+         neighbor 2.0 bin 
+         neigh_modify delay 10 check yes 
+          
+          \# ---------- Define Settings --------------------- 
+          compute eng all pe/atom 
+          compute eatoms all reduce sum c_eng 
+          
+          \# ---------- Run Minimization --------------------- 
+          reset_timestep 0 
+          fix 1 all box/relax iso 0.0 vmax 0.001
+          thermo 10 
+          thermo_style custom step pe lx ly lz press pxx pyy pzz c_eatoms 
+          min_style cg 
+          minimize 1e-25 1e-25 5000 10000 
+          
+          
+          variable natoms equal \"count(all)\" 
+          variable teng equal \"c_eatoms\"
+          variable length equal \"lx\"
+          variable ecoh equal \"v_teng/v_natoms\"
+          
+          log lammps_out.txt
+          
+          print \"Total energy (eV) = ${teng};\"
+          print \"Number of atoms = ${natoms};\"
+          print \"Lattice constant (Angstoms) = ${length};\"
+          print \"Cohesive energy (eV) = ${ecoh};\"
+          
+          print \"All done!\" 
+        "	
+        send :out_file
+        end
+end
+
+    application_module :density_calculation do
+
+	implementation_type :perl_snippet
+        junction_type :fan_in
+        register_xmml_data
+
+	language :perl
+
+	execution do
+        
+
+        declare_port :in_file, :file
+        declare_port :out_file, :file
+
+        declare_param :in_file=>"lammps_out.txt", :out_file=>"density.txt"
+
+        
+        receive :in_file 
+        execute " 
+          \#calculates density in g/cm^3 from lattice constant in angstoms
+           
+           open(IN,\"lammps_out.txt\");
+           open (OUT,\"density.txt\");
+           \$NA=6.002;
+           \$atom_mass=26.9;
+           \$scale_shift_factor=10;
+           
+           while (\$line=<IN>){
+             if (\$line=~/Lattice constant \(Angstoms\) = (\d\.\d\d)/){
+                \$lat_const=\$1;
+                        
+                          }
+                            if (\$line=~/Number of atoms = (\d)/){
+                                    \$atom_number=\$1;
+                                      }
+                                      }
+                                      \$out2= \$atom_number*\$atom_mass*\$scale_shift_factor/((\$lat_const*\$lat_const*$lat_const)*$NA);
+                                        print OUT   $out2;
+                                                print \"density=\",$out2,\" g/cm^3\";
+                                                close (OUT);
+        "	
+        send :out_file
+        end
+
+end
+
+end 
+
+

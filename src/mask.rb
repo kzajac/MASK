@@ -1,7 +1,11 @@
-require "ftools"
+#require "ftools"
+#TODO
+#rozdzielic jary
 require "net/http" 
 require "uri"
 require "rest_client"
+$jar_destination_dir="/home/kzajac/stagein"
+$jar_final_location="grass1.man.poznan.pl:/home/mapper03/AntAndElephantWithFiles/build/"
 
 class DSLElement
  def copyvars
@@ -125,7 +129,8 @@ def self.execution(&blk)
   klass = Class.new(Execution)
   name=self.name.to_s+"Execution"
   @execution=Element.create_unique_object(name, klass, &blk)
-  
+ 
+  if (@implementation_type==:muscle_kernel)
   
   @execution.class.class_exec(@timescale, @spacescale) do |t, s|
  # @execution.class.class_eval do
@@ -147,7 +152,7 @@ def self.execution(&blk)
      end
 
   @execution.copyvars
-  
+  end
  end
 
  def generate main_name
@@ -186,10 +191,11 @@ class Execution < Element
   end
  
   def self.declare_port (name, type ,count=-1)
-   if(type!=:double_array) 
+   if((type!=:double_array)&&(type!=:file))
      puts "error: type of #{name} not supported"
      exit
    end
+
    @declarations||=Hash.new
    if (@declarations.has_key?(name))
      puts "error: #{name} declared twice"
@@ -285,9 +291,11 @@ class Execution < Element
    # TODO - other types
    
    if(my_model.register_xmml_data)
-     XMML_Generator.new.generate my_model.name, @declarations, @params, my_model.spacescale, my_model.timescale, my_model.junction_type
+     XMML_Generator.new.generate my_model.name, my_model.implementation_type, main_name, @declarations, @params, @execution, my_model.spacescale, my_model.timescale, my_model.junction_type
    end
-   
+   if (my_model.implementation_type.to_s.include?("snippet"))
+     Snippet_Generator.new.generate main_name,my_model, @execution
+   else
    if (my_model.implementation_type==:muscle_application)
         
          generator=Muscle_Generator.new
@@ -328,7 +336,7 @@ class Execution < Element
        exit
      end
   end
- 
+   end
   end
   
 end
@@ -384,7 +392,64 @@ class XMML_Generator
         return array_space_scales
 
   end
-  def generate name, ports, params, spacescale, timescale, junctiontype
+  def create_array_params params
+    array_params||=[]
+    unless params.nil?
+      params.each_key do |key|
+        if(key.to_s.include? "file")
+          typ="asset"
+        end
+       if(key.to_s.include? "value_space")
+          typ="dependsOnSpacescale"
+       end
+       if (key.to_s.include? "value_time")
+          typ= "dependsOnTimescale"
+       end
+
+       if params[key].is_a? Integer
+          typ||=""
+          typ=typ+":number"
+       end
+      if params[key].is_a? String
+          typ||=""
+          typ=typ+":string"
+       end
+       if params[key].is_a? Float
+          typ||=""
+          typ=typ+":number"
+       end
+
+        typ||="unknown"
+        array_params.push({"id"=>key.to_s, "type"=>typ, "value"=>params[key].to_s})
+      end
+    end
+    return array_params
+  end
+  def determine_interpreter implementation_type
+    case (implementation_type)
+       when (:muscle_kernel)
+         return "muscle"
+       when(:lammps_snippet)
+         return "lammps"
+       when (:perl_snippet)
+          return "perl"
+    end
+    return "unknown"
+  end
+  def determine_configuration_file implementation_type, execution
+    if (implementation_type.to_s.include? "snippet")
+      execution.each do |element|
+              puts element
+              if (element[0]==:execute)
+                return element[1].to_s
+              end
+            end
+      
+    end
+    return ""
+  end
+
+  def generate name, implementation_type, main_name, ports, params, execution, spacescale, timescale, junctiontype
      
      unless (timescale.nil? && spacescale.nil?)
       p "------------submodule-------------"
@@ -392,14 +457,14 @@ class XMML_Generator
          hash_time_scale=create_hash_time_scale timescale
          
          array_ports=create_ports_array(ports)
-       
-       unless (spacescale.nil?)
+
+      unless (spacescale.nil?)
               array_space_scale=create_array_space_scales spacescale
-              res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Submodel', {"id"=>"#{name}", "name"=>"#{name}", "class"=>"mask.example.#{name}", "timescale"=>hash_time_scale,
+              res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Submodel', {"id"=>"#{name}", "name"=>"#{name}",  "timescale"=>hash_time_scale,
                  "spacescales[]"=>array_space_scale, "ports[]"=>array_ports}
        
        else
-              res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Submodel', {"id"=>"#{name}", "name"=>"#{name}", "class"=>"mask.example.#{name}", "timescale"=>hash_time_scale,
+              res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Submodel', {"id"=>"#{name}", "name"=>"#{name}", "timescale"=>hash_time_scale,
                 "ports"=>array_ports}
               
        end
@@ -408,22 +473,43 @@ class XMML_Generator
        else
          p "registration error", res.to_str
         end
-
-
-
-     
+         url="http://gs2.mapper-project.eu:1234/add_implementation/Submodel/#{name}/"
+         params_array=create_array_params(params)
+         config=determine_configuration_file implementation_type, execution
+         if (implementation_type==:muscle_kernel)
+            res=RestClient.post url, {"interpreter"=>determine_interpreter(implementation_type),"bundle_location"=>"#{$jar_final_location}/#{main_name.downcase}.jar","class"=>"mask.example.#{name}", "parameters[]"=>params_array  }
+         else
+            res=RestClient.post url, {"interpreter"=>determine_interpreter(implementation_type),"configuration_file"=>config, "parameters[]"=>params_array  }
+         end
+     p res.to_str
    
     else
       p "------------junction--------------"
       array_ports=create_ports_array(ports)
-      res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Junction', {"id"=>"#{name}", "name"=>"#{name}", "class"=>"mask.example.#{name}", "type"=>junctiontype.to_s,
+      res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Junction', {"id"=>"#{name}", "name"=>"#{name}", "type"=>junctiontype.to_s,
                  "ports[]"=>array_ports}
       if (res.code==200)
          p"juction #{name} registered !"
       else
          p "registration error", res.to_str
       end
-
+      url="http://gs2.mapper-project.eu:1234/add_implementation/Junction/#{name}/"
+         p url
+         params_array=create_array_params(params)
+         config=determine_configuration_file implementation_type, execution
+         if (implementation_type==:muscle_kernel)
+            res=RestClient.post url, {"interpreter"=>determine_interpreter(implementation_type),"bundle_location"=>"#{$jar_final_location}/#{main_name.downcase}.jar","class"=>"mask.example.#{name}", "parameters[]"=>params_array  }
+         else
+           
+            res=RestClient.post url, {"interpreter"=>determine_interpreter(implementation_type),"configuration_file"=>config, "parameters[]"=>params_array  }
+         end
+         
+if (res.code==200)
+         p"implementation of juction #{name} registered !"
+       else
+         p "registration error", res.to_str
+        end
+         p res.to_str
     end
     #p "Name " +  name
    
@@ -438,6 +524,30 @@ class XMML_Generator
    # p ports
     #p "Parameters:"
    # p params
+  end
+end
+class Snippet_Generator
+  def generate (main_name,my_model,execution)
+    model_name=my_model.name
+
+    _model_name_capital=model_name.to_s.capitalize
+    _dir_name="generatedExamples"
+        Dir.mkdir(_dir_name) unless File.directory?(_dir_name)
+	  _dir_name+="/#{main_name}"
+        Dir.mkdir(_dir_name) unless File.directory?(_dir_name)
+	  _dir_name+="/snippets"
+        Dir.mkdir(_dir_name) unless File.directory?(_dir_name)
+
+     	open("#{_dir_name}/#{_model_name_capital}.snipet", 'w') { |f|
+            execution.each do |element|
+              puts element
+              if (element[0]==:execute)
+                f.puts element[1]
+              end
+            end
+           f.close
+        }
+     p "kernel #{_model_name_capital} generated"
   end
 end
 
@@ -462,16 +572,17 @@ class Muscle_Generator
 	_dir_name+="/example"
         Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
      	open("#{_dir_name}/#{_model_name_capital}.java", 'w') { |f|
-                @my_file=f
+        @my_file=f
      		generate_prefix _model_name_capital, model_extra_imports
      		generate_ports declarations 
      		generate_get_scale timescale, spacescale
         generate_execution_begin
      		generate_execution_declarations model_name, declarations, params
-     		generate_execution_body execution, 1
+     		generate_execution_body declarations, execution, 1
      		generate_end 
-                f.close
+         f.close
         }
+    p "kernel #{_model_name_capital} generated"
  end
 
  def generate_prefix instance_name, model_extra_imports
@@ -508,23 +619,27 @@ public class #{instance_name} extends muscle.core.kernel.CAController {
  def generate_ports declarations
    if (!declarations.nil?)
     declarations.each_key do |name|
+      if declarations[name][0]==:double_array
        if declarations[name][2]==:send
           @my_file.puts "\tprivate ConduitEntrance<double[]> #{name}pipe;"        
        end
        if declarations[name][2]==:receive
           @my_file.puts "\tprivate ConduitExit<double[]> #{name}pipe;"        
        end
+      end
     end  
     @my_file.puts " "
     @my_file.puts "\tprotected void addPortals(){"
 
       declarations.each_key do |name|
-       if declarations[name][2]==:send
-          @my_file.puts "\t\t#{name}pipe= addEntrance(\"#{name}\",1, double[].class);"        
-       end
-       if declarations[name][2]==:receive
-          @my_file.puts  "\t\t#{name}pipe= addExit(\"#{name}\",1, double[].class);"
-       end
+        if declarations[name][0]==:double_array
+          if declarations[name][2]==:send
+            @my_file.puts "\t\t#{name}pipe= addEntrance(\"#{name}\",1, double[].class);"
+          end
+          if declarations[name][2]==:receive
+            @my_file.puts  "\t\t#{name}pipe= addExit(\"#{name}\",1, double[].class);"
+          end
+        end
     end  
 
     @my_file.puts "	}"
@@ -607,27 +722,33 @@ end
    end
    if (!declarations.nil?)
         declarations.each_key do |name|
+          if (declarations[name][0]==:double_array)
            if declarations[name][2]==:send
               @my_file.puts "\t\tdouble[] #{name} = new double[#{declarations[name][1]}];"
            end
            if declarations[name][2]==:receive
               @my_file.puts "\t\tdouble[] #{name} = null;"
            end
+          end
         end
        end
  end
 
- def generate_execution_body(execution_a, deep)
+ def generate_execution_body(declarations, execution_a, deep)
    if (!execution_a.nil?)
       execution_array=execution_a.clone
       while !execution_array.empty? do
         @token=execution_array.shift
         if (@token[0]==:receive)
-          @my_file.puts "\t"*(deep+1)+"#{@token[1]}=#{@token[1]}pipe.receive();"
+          if (declarations[@token[1]][0]!=:file)
+            @my_file.puts "\t"*(deep+1)+"#{@token[1]}=#{@token[1]}pipe.receive();"
+          end
         end
         if (@token[0]==:send)
-          @my_file.puts "\t"*(deep+1)+"#{@token[1]}pipe.send(#{@token[1]});"
-        end
+          if (declarations[@token[1]][0]!=:file)
+            @my_file.puts "\t"*(deep+1)+"#{@token[1]}pipe.send(#{@token[1]});"
+          end
+         end
         if (@token[0]==:execute)
           @ext_code=@token[1].gsub("\n", "\n"+"\t"*(deep+1))
           @my_file.puts "\t"*(deep+1)+"#{@ext_code}"
@@ -635,7 +756,7 @@ end
         if (@token[0]==:loop)
           # TODO - unique maskIterator !
           @my_file.puts "\t"*(deep+1)+"for (int maskIterator=#{@token[1][:start_time]}; maskIterator<#{@token[1][:stop_time]}; maskIterator+=#{@token[1][:step_time]}){"
-          generate_execution_body @token[2],  deep+1
+          generate_execution_body declarations, @token[2],  deep+1
           @my_file.puts "\t"*(deep+1)+"}"
         end
       end
@@ -657,6 +778,7 @@ def generate_build_xml main_name
   text = File.read("build.xml_template")
   text.gsub!("MaskExample1", "#{main_name}")
   text.gsub!("maskExample1.jar", "#{main_name.downcase}.jar")
+  text.gsub!("JARDESTINATIONDIR","#{$jar_destination_dir}")
   
   File.open("generatedExamples/#{main_name}/build.xml", "w") {|file| file.puts text}
     
