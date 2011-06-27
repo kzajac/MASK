@@ -304,7 +304,6 @@ class Execution < Element
           unless (@instances.nil?)
 
              @instances.each_key do |name|
-              
                     model_params||=my_model.models[@instances[name][0].to_s.capitalize].execution.params
                     unless model_params.nil?
                         model_params.each_key do |key|
