@@ -429,11 +429,11 @@ class XMML_Generator
   def determine_interpreter implementation_type
     case (implementation_type)
        when (:muscle_kernel)
-         return "muscle"
+         return ["muscle", "2010-01-11_13-51-27"]
        when(:lammps_snippet)
-         return "lammps"
+         return ["lammps", "9 Feb 11"]
        when (:perl_snippet)
-          return "perl"
+          return ["perl", "5.8.8"]
     end
     return "unknown"
   end
@@ -477,10 +477,12 @@ class XMML_Generator
          url="http://gs2.mapper-project.eu:1234/add_implementation/Submodel/#{name}/"
          params_array=create_array_params(params)
          config=determine_configuration_file implementation_type, execution
+         interpreter=determine_interpreter(implementation_type)[0]
+         version=determine_interpreter(implementation_type)[1]
          if (implementation_type==:muscle_kernel)
-            res=RestClient.post url, {"interpreter"=>determine_interpreter(implementation_type),"bundle_location"=>"#{$jar_final_location}/#{main_name.downcase}.jar","class"=>"mask.example.#{name}", "parameters[]"=>params_array  }
+            res=RestClient.post url, {"interpreter"=>interpreter,"int_version"=>version,"bundle_location"=>"#{$jar_final_location}/#{name.downcase}.jar","class"=>"mask.example.#{name}", "parameters[]"=>params_array  }
          else
-            res=RestClient.post url, {"interpreter"=>determine_interpreter(implementation_type),"config_file"=>config, "parameters[]"=>params_array  }
+            res=RestClient.post url, {"interpreter"=>interpreter,"int_version"=>version,"config_file"=>config, "parameters[]"=>params_array  }
          end
      p res.to_str
    
@@ -498,12 +500,14 @@ class XMML_Generator
          
          params_array=create_array_params(params)
          config=determine_configuration_file implementation_type, execution
-        
+         interpreter=determine_interpreter(implementation_type)[0]
+         version=determine_interpreter(implementation_type)[1]
+
          if (implementation_type==:muscle_kernel)
-            res=RestClient.post url, {"interpreter"=>determine_interpreter(implementation_type),"bundle_location"=>"#{$jar_final_location}/#{main_name.downcase}.jar","class"=>"mask.example.#{name}", "parameters[]"=>params_array  }
+            res=RestClient.post url, {"interpreter"=>interpreter,"int_version"=>version,"bundle_location"=>"#{$jar_final_location}/#{name.downcase}.jar","class"=>"mask.example.#{name}", "parameters[]"=>params_array  }
          else
            
-            res=RestClient.post url, {"interpreter"=>determine_interpreter(implementation_type),"config_file"=>config, "parameters[]"=>params_array  }
+            res=RestClient.post url, {"interpreter"=>interpreter,"int_version"=>version,"config_file"=>config, "parameters[]"=>params_array  }
          end
          
 if (res.code==200)

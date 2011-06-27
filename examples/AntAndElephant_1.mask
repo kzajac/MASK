@@ -97,7 +97,7 @@ application_module :ant_end_elephant do
 
 	language :java, :extra_imports=>"java.io.*"
 
-        spacescale :id=>:x, :delta=>"1 cm", :max=>"1000 m"
+        spacescale :id=>:x, :delta=>"1 cm", :max=>"1000 cm"
         timescale :delta=>"1 min", :max=>"10 min"
 
 
@@ -109,6 +109,7 @@ application_module :ant_end_elephant do
         declare_param :initial_distance=>0, :in_file=>"my_food.txt", :out_file=>"step_log.txt"
 
         execute "
+                System.out.println(\"I am carring the piece of metal 1cm x 1cm x 1cm. It weights \");
                 try{
                 FileReader fr = new FileReader(in_file);
                     int ch;
@@ -123,15 +124,7 @@ application_module :ant_end_elephant do
                     System.err.println(\"Error: \" + e.getMessage());
                     
                     }
-                BufferedWriter out = null;
-                      
-                try{
-            	    FileWriter fstream = new FileWriter(out_file);
-            	    out = new BufferedWriter(fstream);
-            	    out.write (\"hello\");
-                }catch (Exception e){
-            	    System.err.println(\"Error: \" + e.getMessage());
-                }        
+                System.out.println(\" g.\"); 
     	        double myDistance=(double)initial_distance;
     	        System.out.println (\"Ant inital distance is \"+ initial_distance);
     		"        
@@ -148,8 +141,13 @@ application_module :ant_end_elephant do
     		        }
     		        System.out.println (\"Ant is trying to catch Elephant - now the distance is \" + (int) myDistance+\" cm\");	
   		        try{
+		              BufferedWriter out = null;
+	            	      FileWriter fstream = new 
+                             FileWriter(out_file, true);
+        	    	    out = new BufferedWriter(fstream);
   		           
-    		              out.write (\"Ant is trying to catch Elephant - now the distance is \" + (int) myDistance+\" cm\");	
+    		              out.write (\"Ant is trying to catch Elephant - now the distance is \" + (int) myDistance+\" cm\\n\");	
+	            	      out.close();
   		           }
   		           catch(Exception e){
             			System.err.println(\"Error: \" + e.getMessage());
@@ -162,13 +160,6 @@ application_module :ant_end_elephant do
   		
 	end
         execute "
-                 try{
-            		out.close();
-                 
-                 }
-                 catch(Exception e){
-            			System.err.println(\"Error: \" + e.getMessage());
-            	 }  
   		
                  System.out.println(\"The end\");
         "

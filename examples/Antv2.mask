@@ -9,7 +9,7 @@ MultiScaleModel.generate do
 
 	language :java, :extra_imports=>"java.io.*"
 
-        spacescale :id=>:x, :delta=>"1 cm", :max=>"1000 m"
+        spacescale :id=>:x, :delta=>"1 cm", :max=>"1000 cm"
         timescale :delta=>"1 min", :max=>"10 min"
 
 
@@ -63,9 +63,9 @@ MultiScaleModel.generate do
   		        try{
   		           
                             BufferedWriter out = null;
-                 	    FileWriter fstream = new FileWriter(out_file);
+                 	    FileWriter fstream = new FileWriter(out_file, true);
                 	    out = new BufferedWriter(fstream);
-    		            out.write (\"Ant is trying to catch Elephant - now the distance is \" + (int) myDistance+\" cm\");	
+    		            out.write (\"Ant is trying to catch Elephant - now the distance is \" + (int) myDistance+\" cm \\n \");	
                 	    out.close();
   		           }
   		           catch(Exception e){
