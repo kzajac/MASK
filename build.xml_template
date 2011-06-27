@@ -31,8 +31,10 @@
     </fileset>
 
   </jar>
+  <mkdir dir="JARDESTINATIONDIR"  />
+  <copy file="build/maskExample1.jar" todir="JARDESTINATIONDIR" />
   </target>
   <target name="rebuild" depends="clean,makejar"
-          description="rebuilds the tutorial"/>
+          description="rebuilds the skeleton"/>
 
 </project>
