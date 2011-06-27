@@ -1,5 +1,5 @@
 This is a prototype of multiscale application skeleton framework.
-This is experimental, could produce errors
+This is experimental, could produce errors and wornings
 
 The framework generates Muscle (http://muscle.berlios.de) project from specyfication in MASK DSL 
 (see examples/model1.mask) 
