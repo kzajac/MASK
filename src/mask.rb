@@ -6,7 +6,7 @@ require "uri"
 require "rest_client"
 $jar_destination_dir="/home/kzajac/stagein"
 $jar_final_location="grass1.man.poznan.pl:/home/mapper03/AntAndElephantWithFiles/build/"
-
+$install_dir="/home/kzajac/MASK/"
 class DSLElement
  def copyvars
   self.class.instance_variables.each do |var|
@@ -323,14 +323,14 @@ class Execution < Element
             end
          end
          generator.generate_cxa(main_name,  cxa_params, @instances, connection_scheme)
-         generator.generate_build_xml main_name
+         generator.generate_build_xml main_name, my_model.name, @instances
   else
      if (my_model.implementation_type==:muscle_kernel)
          generator=Muscle_Generator.new
         
          generator.generate_kernel(main_name, my_model, @declarations, @execution, @params)
         
-         generator.generate_build_xml main_name
+         generator.generate_build_xml main_name, my_model.name, @instances
 
      else
        p "error: implementation type #{my_model.implementation_type} not supported"
@@ -774,7 +774,7 @@ end
   @my_file.puts "}"
  end
 
-def generate_build_xml main_name
+def generate_build_xml main_name, name, instances
 
   _dir_name="generatedExamples"
    Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
@@ -782,9 +782,47 @@ def generate_build_xml main_name
   Dir.mkdir(_dir_name) unless File.directory?(_dir_name) 
   
   text = File.read("build.xml_template")
-  text.gsub!("MaskExample1", "#{main_name}")
-  text.gsub!("maskExample1.jar", "#{main_name.downcase}.jar")
+  text.gsub!("MaskExample1", "#{name}")
+  text.gsub!("maskExample1.jar", "#{name.downcase}.jar")
   text.gsub!("JARDESTINATIONDIR","#{$jar_destination_dir}")
+  build_jar_string=""
+  build_copy_string=""
+  unless instances.nil?
+  instances.each_key do |name|
+    build_jar_string=build_jar_string+"
+    <jar destfile=\"build/#{instances[name][0].to_s.downcase}.jar\">
+    <fileset dir=\"classes\">
+          <include name=\"mask/example/#{instances[name][0].to_s.capitalize}.class\"/>
+    </fileset>
+
+  </jar>
+      "
+   build_copy_string=build_copy_string+"
+<copy file=\"build/#{instances[name][0].to_s.downcase}.jar\" todir=\"#{$jar_destination_dir}\" />
+"
+    
+	 end
+  
+else
+  build_jar_string="
+  <jar destfile=\"build/#{name.to_s.downcase}.jar\">
+    <fileset dir=\"classes\">
+          <include name=\"mask/example/*\"/>
+    </fileset>
+
+  </jar>
+
+  "
+  build_copy_string="
+<copy file=\"build/#{name.to_s.downcase}.jar\" todir=\"#{$jar_destination_dir}\" />
+  "
+  end
+  build_jar_string=build_jar_string+"
+  <mkdir dir=\"#{$jar_destination_dir}\" />"+ build_copy_string
+  
+
+  text.gsub!("INSERTJAR",build_jar_string)
+  
   
   File.open("generatedExamples/#{main_name}/build.xml", "w") {|file| file.puts text}
     
@@ -801,6 +839,11 @@ def generate_cxa (main_name, params,  instances, connection_scheme)
   Dir.mkdir(_dir_name) unless File.directory?(_dir_name)        
 
   open("#{_dir_name}/#{main_name}.cxa.rb", 'w') { |f|
+    class_path_string=""
+   instances.each_key do |name|
+    #p instances[name]
+    class_path_string=class_path_string+"#{$jar_destination_dir}/#{instances[name][0].to_s.downcase}.jar:"
+	 end
 
     f.puts "
 
@@ -809,7 +852,7 @@ abort \"this is a configuration file for to be used with the MUSCLE bootstrap ut
 
 # add build for this cxa to system paths (i.e. CLASSPATH)
 m = Muscle.LAST
-m.add_classpath File.expand_path(File.dirname(__FILE__))+\"/../build/#{main_name.downcase}.jar\"
+m.add_classpath \"#{class_path_string}\"
 
 # configure cxa properties
 cxa = Cxa.LAST
