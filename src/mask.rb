@@ -1,12 +1,11 @@
 #require "ftools"
-#TODO
-#rozdzielic jary
 require "net/http" 
 require "uri"
 require "rest_client"
+# during INSTALLATION set this dirs properly
 $jar_destination_dir="/home/kzajac/stagein"
 $jar_final_location="grass1.man.poznan.pl:/home/mapper03/AntAndElephantWithFiles/build/"
-$install_dir="/home/kzajac/MASK/"
+$install_dir="/home/kzajac/MASK_27.06.11/MASK/"
 class DSLElement
  def copyvars
   self.class.instance_variables.each do |var|
@@ -460,11 +459,11 @@ class XMML_Generator
 
       unless (spacescale.nil?)
               array_space_scale=create_array_space_scales spacescale
-              res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Submodel', {"id"=>"#{name}", "name"=>"#{name}",  "timescale"=>hash_time_scale,
+              res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Submodel', {"client"=>"rest", "id"=>"#{name}", "name"=>"#{name}",  "timescale"=>hash_time_scale,
                  "spacescales[]"=>array_space_scale, "ports[]"=>array_ports}
        
        else
-              res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Submodel', {"id"=>"#{name}", "name"=>"#{name}", "timescale"=>hash_time_scale,
+              res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Submodel', {"client"=>"rest","id"=>"#{name}", "name"=>"#{name}", "timescale"=>hash_time_scale,
                 "ports"=>array_ports}
               
        end
@@ -479,23 +478,23 @@ class XMML_Generator
          interpreter=determine_interpreter(implementation_type)[0]
          version=determine_interpreter(implementation_type)[1]
          if (implementation_type==:muscle_kernel)
-            res=RestClient.post url, {"interpreter"=>interpreter,"int_version"=>version,"bundle_location"=>"#{$jar_final_location}/#{name.downcase}.jar","class"=>"mask.example.#{name}", "parameters[]"=>params_array  }
+            res=RestClient.post url, {"client"=>"rest","interpreter"=>interpreter,"int_version"=>version,"bundle_location"=>"#{$jar_final_location}/#{name.downcase}.jar","class"=>"mask.example.#{name}", "parameters[]"=>params_array  }
          else
-            res=RestClient.post url, {"interpreter"=>interpreter,"int_version"=>version,"config_file"=>config, "parameters[]"=>params_array  }
+            res=RestClient.post url, {"client"=>"rest","interpreter"=>interpreter,"int_version"=>version,"config_file"=>config, "parameters[]"=>params_array  }
          end
      p res.to_str
    
     else
       p "------------junction--------------"
       array_ports=create_ports_array(ports)
-      res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Junction', {"id"=>"#{name}", "name"=>"#{name}", "type"=>junctiontype.to_s,
+      res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Mapper', {"client"=>"rest","id"=>"#{name}", "name"=>"#{name}", "type"=>junctiontype.to_s,
                  "ports[]"=>array_ports}
       if (res.code==200)
          p"juction #{name} registered !"
       else
          p "registration error", res.to_str
       end
-      url="http://gs2.mapper-project.eu:1234/add_implementation/Junction/#{name}/"
+      url="http://gs2.mapper-project.eu:1234/add_implementation/Mapper/#{name}/"
          
          params_array=create_array_params(params)
          config=determine_configuration_file implementation_type, execution
@@ -503,10 +502,10 @@ class XMML_Generator
          version=determine_interpreter(implementation_type)[1]
 
          if (implementation_type==:muscle_kernel)
-            res=RestClient.post url, {"interpreter"=>interpreter,"int_version"=>version,"bundle_location"=>"#{$jar_final_location}/#{name.downcase}.jar","class"=>"mask.example.#{name}", "parameters[]"=>params_array  }
+            res=RestClient.post url, {"client"=>"rest","interpreter"=>interpreter,"int_version"=>version,"bundle_location"=>"#{$jar_final_location}/#{name.downcase}.jar","class"=>"mask.example.#{name}", "parameters[]"=>params_array  }
          else
            
-            res=RestClient.post url, {"interpreter"=>interpreter,"int_version"=>version,"config_file"=>config, "parameters[]"=>params_array  }
+            res=RestClient.post url, {"client"=>"rest","interpreter"=>interpreter,"int_version"=>version,"config_file"=>config, "parameters[]"=>params_array  }
          end
          
 if (res.code==200)
@@ -780,7 +779,7 @@ def generate_build_xml main_name, name, instances
   _dir_name+="/#{main_name}"
   Dir.mkdir(_dir_name) unless File.directory?(_dir_name) 
   
-  text = File.read("build.xml_template")
+  text = File.read("#{$install_dir}/build.xml_template")
   text.gsub!("MaskExample1", "#{name}")
   text.gsub!("maskExample1.jar", "#{name.downcase}.jar")
   text.gsub!("JARDESTINATIONDIR","#{$jar_destination_dir}")
@@ -905,8 +904,10 @@ cs = cxa.cs
 
 end
 end
-
-
+#Installation under GS - uncommend this two lines:
+#$kod=STDIN.read
+#eval $kod
+# Installation under GS - comment lines below
 if ARGV.size > 0
   load ARGV.shift
 else

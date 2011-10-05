@@ -1,8 +1,24 @@
 This is a prototype of multiscale application skeleton framework.
-This is experimental, could produce errors and wornings
+This is experimental, could produce errors and warnings
 
 The framework generates Muscle (http://muscle.berlios.de) project from specyfication in MASK DSL 
 (see examples/model1.mask) 
+
+FOR installation as GridSpace Interpreter: 
+
+1. set $jar_destination_dir for a directory where you want to the jars to 
+be build in a compilation step. This dir will be put into build.xml for 
+generated java sources.
+
+2. set $jar_final_location to the location of jars (bundle) to be register 
+in MaMe. 
+This should have a form hostname.domain:/absolute/path/to/jars/directory/
+
+3. set $install_dir to MASK installation (will be used to find 
+build.xml_template)
+
+4. Comment and Uncommend  lines at the end of the file (for reading 
+from std input instead of the file)
 
 Plan TODO
 
