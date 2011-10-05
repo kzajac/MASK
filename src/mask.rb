@@ -359,9 +359,11 @@ class Joining < DSLElement
 
 class XMML_Generator
 
-  def create_ports_array ports
+  def create_ports_array ports, for_entity
    ports_array||=[]
+   if (for_entity==:submodule)
     ports.each_key do |key|
+
       case(ports[key][2])
       when :send
         ports_array.push({"id"=>key.to_s,"datatype"=>ports[key][0].to_s,"inout"=>"out", "operator"=>ports[key][3].to_s})
@@ -369,14 +371,28 @@ class XMML_Generator
         ports_array.push({"id"=>key.to_s,"datatype"=>ports[key][0].to_s,"inout"=>"in", "operator"=>ports[key][3].to_s})
       end
     end
+   end
+   if(for_entity==:mapper)
+     ports.each_key do |key|
+
+      case(ports[key][2])
+      when :send
+        ports_array.push({"id"=>key.to_s,"datatype"=>ports[key][0].to_s,"inout"=>"out"})
+      when :receive
+        ports_array.push({"id"=>key.to_s,"datatype"=>ports[key][0].to_s,"inout"=>"in"})
+      end
+    end
+
+   end
+
     return ports_array
   end
   def create_hash_time_scale timescale
        hash_time_scale||={}
       if (timescale.nil?)
-         hash_time_scale={"delta"=>"1", "max"=>"1"}
+         hash_time_scale={"delta"=>"1", "total"=>"1"}
        else
-         hash_time_scale={"delta"=>timescale[:delta], "max"=>timescale[:max]}
+         hash_time_scale={"delta"=>timescale[:delta], "total"=>timescale[:max]}
        end
       return hash_time_scale
   end
@@ -385,7 +401,7 @@ class XMML_Generator
         unless spacescale.nil?
              spacescale.each do |spaces|
 
-                array_space_scales.push({"max"=>spaces[:max], "delta"=>spaces[:delta], "id"=>spaces[:id]})
+                array_space_scales.push({"total"=>spaces[:max], "delta"=>spaces[:delta], "id"=>spaces[:id]})
              end
         end
         return array_space_scales
@@ -455,15 +471,15 @@ class XMML_Generator
        
          hash_time_scale=create_hash_time_scale timescale
          
-         array_ports=create_ports_array(ports)
+         array_ports=create_ports_array(ports, :submodule)
 
       unless (spacescale.nil?)
               array_space_scale=create_array_space_scales spacescale
-              res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Submodel', {"client"=>"rest", "id"=>"#{name}", "name"=>"#{name}",  "timescale"=>hash_time_scale,
+              res= RestClient.post 'http://mapper:memorizeme@gs2.mapper-project.eu:1234/add_base/Submodel', {"client"=>"rest", "id"=>"#{name}", "name"=>"#{name}",  "timescale"=>hash_time_scale,
                  "spacescales[]"=>array_space_scale, "ports[]"=>array_ports}
        
        else
-              res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Submodel', {"client"=>"rest","id"=>"#{name}", "name"=>"#{name}", "timescale"=>hash_time_scale,
+              res= RestClient.post 'http://mapper:memorizeme@gs2.mapper-project.eu:1234/add_base/Submodel', {"client"=>"rest","id"=>"#{name}", "name"=>"#{name}", "timescale"=>hash_time_scale,
                 "ports"=>array_ports}
               
        end
@@ -472,7 +488,7 @@ class XMML_Generator
        else
          p "registration error", res.to_str
         end
-         url="http://gs2.mapper-project.eu:1234/add_implementation/Submodel/#{name}/"
+         url="http://mapper:memorizeme@gs2.mapper-project.eu:1234/add_implementation/Submodel/#{name}/"
          params_array=create_array_params(params)
          config=determine_configuration_file implementation_type, execution
          interpreter=determine_interpreter(implementation_type)[0]
@@ -485,16 +501,16 @@ class XMML_Generator
      p res.to_str
    
     else
-      p "------------junction--------------"
-      array_ports=create_ports_array(ports)
-      res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Mapper', {"client"=>"rest","id"=>"#{name}", "name"=>"#{name}", "type"=>junctiontype.to_s,
+      p "------------mapper--------------"
+      array_ports=create_ports_array(ports, :mapper)
+      res= RestClient.post 'http://mapper:memorizeme@gs2.mapper-project.eu:1234/add_base/Mapper', {"client"=>"rest","id"=>"#{name}", "name"=>"#{name}", "type"=>junctiontype.to_s,
                  "ports[]"=>array_ports}
       if (res.code==200)
-         p"juction #{name} registered !"
+         p"mapper #{name} registered !"
       else
          p "registration error", res.to_str
       end
-      url="http://gs2.mapper-project.eu:1234/add_implementation/Mapper/#{name}/"
+      url="http://mapper:memorizeme@gs2.mapper-project.eu:1234/add_implementation/Mapper/#{name}/"
          
          params_array=create_array_params(params)
          config=determine_configuration_file implementation_type, execution
@@ -509,7 +525,7 @@ class XMML_Generator
          end
          
 if (res.code==200)
-         p"implementation of juction #{name} registered !"
+         p"implementation of mapper #{name} registered !"
        else
          p "registration error", res.to_str
         end

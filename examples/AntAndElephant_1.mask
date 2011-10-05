@@ -7,7 +7,7 @@ application_module :ant_end_elephant do
        
     application_module :elephant do
         
-#        register_xmml_data
+        register_xmml_data
         
         implementation_type :muscle_kernel
         
@@ -56,7 +56,7 @@ application_module :ant_end_elephant do
 	implementation_type :muscle_kernel
         junction_type :fan_out
         
- #       register_xmml_data
+        register_xmml_data
 
 	language :java
 	
@@ -93,7 +93,7 @@ application_module :ant_end_elephant do
 
 	implementation_type :muscle_kernel
 
-  #      register_xmml_data
+        register_xmml_data
 
 	language :java, :extra_imports=>"java.io.*"
 

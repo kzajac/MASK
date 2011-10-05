@@ -5,7 +5,7 @@ MultiScaleModel.generate do
 
 	implementation_type :muscle_kernel
 
-#        register_xmml_data
+        register_xmml_data
 
 	language :java, :extra_imports=>"java.io.*"
 
