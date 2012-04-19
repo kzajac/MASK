@@ -1,0 +1,40 @@
+Modules.create do
+
+module :mod1 do
+
+cores 1
+
+execution do
+
+   for (i=0;i<10;i++) do
+
+
+   calculate "10s"  
+
+   spawn  :id=>:sp1 :module=>mod2 :instances=>1 :data_send=>"20MB", 
+            data_receive =>"20MB"     
+
+   calculate "100"
+  
+   receive :sp1
+
+   calculate "50 s"
+
+   end
+end
+
+end
+
+module :mod2 do
+
+	cores 2
+
+	execution do
+ 		calculete "10s"
+	end
+
+end
+
+end
+
+Modules.execute :mod1 
