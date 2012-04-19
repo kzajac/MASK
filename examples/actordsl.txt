@@ -1,40 +1,40 @@
 Modules.create do
 
-module :mod1 do
+    app_module :mod1 do
 
-cores 1
+        cores 1
 
-execution do
+        execution do
 
-   for (i=0;i<10;i++) do
+                   for i in 1..2
 
+                   calculate "10s"
 
-   calculate "10s"  
+                   spawn  :id=>:sp1, :module=>:mod2, :instances=>1, :data_send=>"20MB",  :data_receive =>"20MB"
 
-   spawn  :id=>:sp1 :module=>mod2 :instances=>1 :data_send=>"20MB", 
-            data_receive =>"20MB"     
+                   calculate "100"
 
-   calculate "100"
+                   receive :sp1
+
+                   calculate "50 s"
+                  end
   
-   receive :sp1
+   
+          end
 
-   calculate "50 s"
+     end
 
-   end
-end
+      app_module :mod2 do
 
-end
+              cores 2
 
-module :mod2 do
+             execution do
+                     calculate "10s"
+              end
 
-	cores 2
-
-	execution do
- 		calculete "10s"
-	end
+      end
 
 end
 
-end
-
-Modules.execute :mod1 
+Modules.execute :mod1
+Modules.execute :mod2
