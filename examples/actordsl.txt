@@ -6,9 +6,9 @@ Modules.create do
 
         execution do
 
-                   for i in 1..2
+                  
 
-                   calculate "10s"
+                   calculate "10"
 
                    spawn  :id=>:sp1, :module=>:mod2, :instances=>1, :data_send=>"20MB",  :data_receive =>"20MB"
 
@@ -16,8 +16,8 @@ Modules.create do
 
                    receive :sp1
 
-                   calculate "50 s"
-                  end
+                   calculate "50"
+                  
   
    
           end
@@ -29,7 +29,7 @@ Modules.create do
               cores 2
 
              execution do
-                     calculate "10s"
+                     calculate "5000"
               end
 
       end
@@ -37,4 +37,4 @@ Modules.create do
 end
 
 Modules.execute :mod1
-Modules.execute :mod2
+#Modules.execute :mod2
