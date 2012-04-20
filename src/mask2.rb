@@ -29,7 +29,13 @@ class Modules <DSLElement
       @modules[name] = p
     end
     def self.execute (name)
-      @modules[name].execute
+      @modules.each_key { |key|
+          puts "loop#{key}/1"
+      }
+      @modules.each_key { |key|
+          p "erlang code generates for #{key}"
+          @modules[key].execute
+      }
     end
  end
 
@@ -67,15 +73,16 @@ class Mod < Element
     #puts @name
    # puts @cores
    # puts @execution
+   name_s="loop"+@name.to_s
    puts "
 -module(proba2).
 
 -export([loopmodule/1, fullmodule/0]).
 
-loopmodule(0) ->
+#{name_s}(0) ->
        io:format(\"~w ending ~n\",[self()]);
 
-loopmodule(Number) ->
+#{name_s}(Number) ->
 
 
     "
@@ -87,15 +94,18 @@ loopmodule(Number) ->
            print "io:format(\"~w calculating~n\",[self()]),\ntimer:sleep(#{commend[commend_symbol]})"
          end
          if commend_symbol==:r
-           print "io:format(\"~w waiting from answer from ~w ~n\",[self(), Pid2]),\nreceive \n {Pid2, Msg} -> \n\tio:format(\"~w received ~w~n\",[self(),Msg])\nend"
+           pid_name=commend[commend_symbol].to_s.capitalize
+           print "io:format(\"~w waiting from answer from ~w ~n\",[self(), #{pid_name}]),\nreceive \n {#{pid_name}, Msg} -> \n\tio:format(\"~w received ~w~n\",[self(),Msg])\nend"
 
          end
          if commend_symbol==:s
-             print "io:format(\"~w spawning ~n\",[self()]), 
-Pid2 = spawn(proba2, fullmodule, []), \n
-io:format(\"~w sending data to ~w ~n\",[self(), Pid2]),
-Pid2 ! {self(), value}"
+             pid_name=commend[commend_symbol][:id].to_s.capitalize
 
+             print "io:format(\"~w spawning ~n\",[self()]), 
+#{pid_name} = spawn(proba2, fullmodule, []), \n
+io:format(\"~w sending data to ~w ~n\",[self(), Pid2]),
+#{pid_name} ! {self(), value}"
+#puts commend[commend_symbol][:module].to_s.capitalize
           # commend[commend_symbol].each_key do |key|
             # puts "#{key} for #{commend[commend_symbol][key]}"
           # end
@@ -103,7 +113,7 @@ Pid2 ! {self(), value}"
           # puts commend[commend_symbol]
          end
          if commend_symbol==:k
-           print "loopmodule(Number-1)."
+           print "#{name_s}(Number-1)."
          else
             puts ","
          end
