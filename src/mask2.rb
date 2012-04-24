@@ -10,7 +10,8 @@ end
 
 class Modules <DSLElement
 
-   def self.create(&block)
+   def self.create(name, &block)
+      @my_name=name
       f = Modules.new
       f.class.instance_eval(&block) if block_given?
       f.copyvars
@@ -23,17 +24,28 @@ class Modules <DSLElement
       Object.const_set(name_s, klass)  unless Object.const_defined?(name_s)
       p = Object.const_get(name_s).new
       p.name=name_s
+      p.subname=@my_name
       #p = Mod.new(name.to_s)
       p.class.class_eval(&blk) if block_given?
       p.copyvars
       @modules[name] = p
+
     end
     def self.execute (name)
+      print "-module(#{@my_name.to_s}).
+-export(["
+      number_modules=@modules.length
+      number_cur=0;
       @modules.each_key { |key|
-          puts "loop#{key}/1"
+          print "loop#{key.to_s.capitalize}/1"
+          number_cur=number_cur+1
+          if (number_cur<number_modules)
+            print ","
+          end
       }
+      puts "])\n"
       @modules.each_key { |key|
-          p "erlang code generates for #{key}"
+          p "%erlang code generated for module #{key}"
           @modules[key].execute
       }
     end
@@ -48,8 +60,10 @@ class Modules <DSLElement
 end
 
 class Mod < Element
+ attr_accessor :subname
   def initialize(name=nil)
     @name = name
+    @subname=nil
     super
   end
 
@@ -57,7 +71,7 @@ class Mod < Element
     @cores=nbcores
   end
 
-  def self.execution (&blk)
+  def self.execution (rep=1, &blk)
       klass = Class.new(Execution)
       name_s="Exec"+self.name.to_s
       #puts "Nazwa " + name_s
@@ -66,7 +80,8 @@ class Mod < Element
       p.class.class_eval(&blk) if block_given?
       p.copyvars
       @execution = p
-      @execution.commends.push(:k=>:k)
+  #    @execution.commends.push(:k=>:k)
+      @execution.rep=rep
   end
 
   def execute
@@ -74,10 +89,8 @@ class Mod < Element
    # puts @cores
    # puts @execution
    name_s="loop"+@name.to_s
+   if (@execution.rep>=2)
    puts "
--module(proba2).
-
--export([loopmodule/1, fullmodule/0]).
 
 #{name_s}(0) ->
        io:format(\"~w ending ~n\",[self()]);
@@ -86,7 +99,17 @@ class Mod < Element
 
 
     "
+  else
+    puts "
+#{name_s}() ->
+      "
+  end
+   number_of_commends=@execution.commends.length
+      number_cur=0;
     @execution.commends.each {|commend|
+
+
+     
       commend.each_key do |commend_symbol|
 
          #puts commend_symbol
@@ -100,9 +123,10 @@ class Mod < Element
          end
          if commend_symbol==:s
              pid_name=commend[commend_symbol][:id].to_s.capitalize
+             module_name="loop"+commend[commend_symbol][:module].to_s.capitalize
 
              print "io:format(\"~w spawning ~n\",[self()]), 
-#{pid_name} = spawn(proba2, fullmodule, []), \n
+#{pid_name} = spawn(#{self.subname}, #{module_name}, []), \n
 io:format(\"~w sending data to ~w ~n\",[self(), Pid2]),
 #{pid_name} ! {self(), value}"
 #puts commend[commend_symbol][:module].to_s.capitalize
@@ -112,8 +136,14 @@ io:format(\"~w sending data to ~w ~n\",[self(), Pid2]),
          #else
           # puts commend[commend_symbol]
          end
-         if commend_symbol==:k
-           print "#{name_s}(Number-1)."
+         number_cur=number_cur+1
+         
+         if (number_cur==number_of_commends)
+           if (@execution.rep>=2)
+            print ",\n#{name_s}(Number-1)."
+           else
+             print "."
+           end
          else
             puts ","
          end
@@ -126,7 +156,7 @@ io:format(\"~w sending data to ~w ~n\",[self(), Pid2]),
   end
 end
 class Execution <DSLElement
-  attr_accessor :commends
+  attr_accessor :commends, :rep
   def self.calculate (nb)
     @commends||=[]
     @commends.push(:c=>nb)

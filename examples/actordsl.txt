@@ -1,16 +1,16 @@
-Modules.create do
+Modules.create :testapp do
 
-    app_module :mod1 do
+    app_module :long do
 
         cores 1
 
-        execution do
+        execution 2 do
 
                   
 
                    calculate "10"
 
-                   spawn  :id=>:sp1, :module=>:mod2, :instances=>1, :data_send=>"20MB",  :data_receive =>"20MB"
+                   spawn  :id=>:sp1, :module=>:short, :instances=>1, :data_send=>"20MB",  :data_receive =>"20MB"
 
                    calculate "100"
 
@@ -24,7 +24,7 @@ Modules.create do
 
      end
 
-      app_module :mod2 do
+      app_module :short do
 
               cores 2
 
