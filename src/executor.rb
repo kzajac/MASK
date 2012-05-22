@@ -5,18 +5,37 @@ class Calculating_object
     out_data=in_data+1
   end
 end
+class Resource_Manager
+  def get_resources
 
+  end
+end
+class Remote_calc_object_creator
+  
+end
 class Executor_Scenario
-  def self.calculate
+  def initialize
+    resman=new Resouce_Manager
+  end
+  def get_resources
+       ip=resman.get_resources
+  end
+  def create_calculating_object_on_resources(ip)
+         remote_calc_object_creator.create_calculating_object(params)
+         
+  end
+  
+  def calculate
+         @my_obj.calculate
+  end
+  def spawn
+     create_calculating_object_on_resources(resman.get_resources)
+     
+  end
+  def receive
 
   end
-  def self.spawn
-
-  end
-  def self.receive
-
-  end
-  def self.send
+  def send
     
   end
 
