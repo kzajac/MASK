@@ -5,39 +5,61 @@ class Calculating_object
     out_data=in_data+1
   end
 end
+
 class Resource_Manager
   def get_resources
 
   end
 end
-class Remote_calc_object_creator
-  
+class CPU_guard
+  def getPermission
+
+  end
+  def returnPermission
+
+  end
 end
+
+class Calc_object_steer
+  def initialize cpuguard
+    @cpuguard=cpuguard
+  end
+  def create_object
+    new Calculating_object
+  end
+  def ask_calculate obj
+    @cpuquard.getPermission
+    obj.calculate
+    @cpuquard.returnPermision
+  end
+end
+
 class Executor_Scenario
   def initialize
-    resman=new Resouce_Manager
+    @resman=new Resouce_Manager
   end
-  def get_resources
-       ip=resman.get_resources
+
+ 
+  def get_remote_calc_object ip
+
+    
+  end
+  def create_main_object
+    ip=@resman.get_resources
+    @my_obj=create_calculating_object_on_resources(ip)
+
   end
   def create_calculating_object_on_resources(ip)
-         remote_calc_object_creator.create_calculating_object(params)
+   
+    remote_calc_object_steer=get_remote_calc_object(ip)
+    remote_calc_object_steer.create_calculating_object(params)
          
   end
   
   def calculate
          @my_obj.calculate
   end
-  def spawn
-     create_calculating_object_on_resources(resman.get_resources)
-     
-  end
-  def receive
-
-  end
-  def send
-    
-  end
+  
 
 end
 puts "Hello World"
