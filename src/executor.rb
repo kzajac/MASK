@@ -8,15 +8,15 @@ end
 
 class Resource_Manager
   def get_resources
-
+     puts "getting resources"
   end
 end
 class CPU_guard
   def getPermission
-
+      puts "getting permissions"
   end
   def returnPermission
-
+      puts "return permissions"
   end
 end
 
@@ -46,18 +46,13 @@ class Executor_Scenario
   end
   def create_main_object
     ip=@resman.get_resources
-    @my_obj=create_calculating_object_on_resources(ip)
+    @my_obj=get_remote_cacl_object(ip).create_object
 
   end
-  def create_calculating_object_on_resources(ip)
-   
-    remote_calc_object_steer=get_remote_calc_object(ip)
-    remote_calc_object_steer.create_calculating_object(params)
-         
-  end
+  
   
   def calculate
-         @my_obj.calculate
+         get_remore_cacl_object.calculate(@my_object)
   end
   
 
