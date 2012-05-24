@@ -1,0 +1,31 @@
+Modules.create :testapp do
+
+    app_module :long do
+
+        cores 1
+
+        execution 2 do
+
+                  
+
+                   calculate "10"
+
+                   spawn  :id=>:sp1,  :instances=>1, :data_send=>"20MB",   :calculate=>"50", :cores=>2,  :data_received =>"20MB"
+
+                    calculate "100"
+
+                   receive :sp1
+
+                   calculate "50"
+                  
+  
+   
+          end
+
+     end
+
+     
+
+end
+
+Modules.execute :mod1
