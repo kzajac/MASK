@@ -4,6 +4,8 @@
 
 # load DRb
 require 'drb'
+require 'thread'
+
 class CPU_guard
   def get_permission
       puts "getting permissions"
@@ -19,14 +21,34 @@ class Calc_object_steer
   end
   def create_object
     @objects||=[]
-    @objects.push(Calculating_object.new)
+    newobj=Calculating_object.new
+    calcp=Calc_processor.new(newobj)
+    @objects.push(calcp)
+    calcp.process
     puts @objects.length
     return index=@objects.length-1
   end
   def ask_calculate object_index, loop_index
-    @cpuguard.get_permission
-    @objects[object_index].calculate loop_index
-    @cpuguard.return_permission
+   
+    @objects[object_index].inqueue.push loop_index
+    
+  end
+end
+class Calc_processor
+  attr_accessor :inqueue
+  def initialize (mobj)
+    @my_obj=mobj
+    @inqueue=Queue.new
+    @outqueue=Queue.new
+  end
+  def process
+    Thread.new do
+      while true do
+        args=@inqueue.pop
+        @my_obj.calculate args
+        @outqueue.push(:done)
+      end
+    end
   end
 end
 class Calculating_object

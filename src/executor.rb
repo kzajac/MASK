@@ -38,7 +38,7 @@ class Executor_Scenario
 
 end
 puts "Hello World"
-exec=Executor_Scenario.new.get_remote_calc_object "druby://ubuntu:47583"
+exec=Executor_Scenario.new.get_remote_calc_object "druby://ubuntu:52832"
 exec.ask_calculate(1, 8)
 #calc=Calculating_object.new
 #puts calc.calculate(5, 6, 1)
