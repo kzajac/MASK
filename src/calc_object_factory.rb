@@ -49,6 +49,7 @@ end
 
 class Calculating_object
   def initialize cpuqueue, cpu_quard_info
+    # TODO schowac kolejki w obiekcie CPUQuard i jego metodach get permission i release permission
     @data=0
     @my_id=cpu_quard_info[0]
     @cpuqueue =cpuqueue
@@ -75,10 +76,10 @@ class Calculating_object
 end
 puts "hello"
 # start up the DRb service
-DRb.start_service nil, Calc_object_factory.new
+#DRb.start_service nil, Calc_object_factory.new
 
 # We need the uri of the service to connect a client
-puts DRb.uri
+#puts DRb.uri
 
 # wait for the DRb service to finish before exiting
-DRb.thread.join
+#DRb.thread.join
