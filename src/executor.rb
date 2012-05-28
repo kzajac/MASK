@@ -6,7 +6,7 @@ require 'drb'
 class Resource_Manager
   def get_resources
      puts "getting resources"
-     ip="druby://ubuntu:38008"
+     ip="druby://ubuntu:37121"
   end
 end
 
@@ -31,15 +31,13 @@ class Executor_Scenario
   end
   
   
-  def calculate
-         get_remore_calc_object.ask_calculate(@my_obj)
-  end
+  
   
 
 end
 puts "Hello World"
-exec=Executor_Scenario.new.get_remote_calc_object "druby://ubuntu:52832"
-exec.ask_calculate(1, 8)
+exec=Executor_Scenario.new.create_main_object
+#exec.ask_calculate(1, 8)
 #calc=Calculating_object.new
 #puts calc.calculate(5, 6, 1)
 
