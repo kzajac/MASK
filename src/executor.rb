@@ -6,7 +6,7 @@ require 'drb'
 class Resource_Manager
   def get_resources
      puts "getting resources"
-     ip="druby://ubuntu:37121"
+     ip="druby://ubuntu:40664"
   end
 end
 
@@ -17,7 +17,7 @@ class Executor_Scenario
   end
 
  
-  def get_remote_calc_object url
+  def get_remote_calc_object_factory url
 
     remote_calc_object = DRbObject.new nil, url
     puts remote_calc_object
@@ -26,7 +26,7 @@ class Executor_Scenario
 
   def create_main_object
     url=@resman.get_resources
-    @my_obj=get_remote_calc_object(url).create_object
+    @my_obj=get_remote_calc_object_factory(url).create_object
 
   end
   
