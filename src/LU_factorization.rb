@@ -5,8 +5,11 @@
 require 'linalg'
 require 'drb'
 include Linalg
+
 class Calculating_object
+
   def initialize cpu_quard_url, my_id
+
     @my_id=my_id.to_i
     @cpu_quard=DRbObject.new nil, cpu_quard_url
 
@@ -15,11 +18,9 @@ class Calculating_object
   def calculate
 
     beginning = Time.now
-# code block
-
     a = DMatrix.rand(1600, 1600)
     l, u = a.lu
-     puts "Time elapsed #{Time.now - beginning} seconds"
+    puts "Time elapsed #{Time.now - beginning} seconds"
 
   end
 

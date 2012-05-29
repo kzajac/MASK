@@ -6,6 +6,21 @@
 require 'drb'
 require 'thread'
 
+class Resource_information
+
+
+
+  def add_to_resources_list resource_url
+      @resources||=[]
+      @resources.push(resource_url)
+  end
+
+  def
+
+  end
+
+
+end
 
 class CPU_guard
   attr_accessor :cpuqueue, :calc_queues
@@ -90,14 +105,14 @@ class Calculating_object_test
 
   def process
    # puts "processing"
-    Thread.new do
+  Thread.new do
       while true do
        # puts "getting permissions"
         @cpu_quard.get_permission(@my_id)
          calculate
          @cpu_quard.release_permission(@my_id)
       end
-    end
+  end
   end
 end
 puts "hello"
