@@ -6,6 +6,7 @@
 require 'drb'
 require 'thread'
 
+
 class CPU_guard
   attr_accessor :cpuqueue, :calc_queues
   def initialize
@@ -16,45 +17,69 @@ class CPU_guard
   def create_communication_channels
    channels={:in=>Queue.new,:out=>Queue.new}
    @calc_queues.push(channels)
-   return [@calc_queues.length-1,channels]
+   return @calc_queues.length-1
+  end
+  def get_permission my_id
+    # puts "in get permission routine"
+    
+     #puts "#{my_id} pushes its id to cpuqueue"
+     @cpuqueue.push(my_id)
+
+     inqueue=@calc_queues[my_id][:in]
+    # puts "#{my_id} waits for permissions"
+     inqueue.pop()
+  end
+  def release_permission my_id
+     outqueue=@calc_queues[my_id][:out]
+     outqueue.push(:done)
   end
   def process
     Thread.new do
     while true do
+     # puts "CPU getting id of calcluating process"
       calc_id=@cpuqueue.pop
+     # puts "CPU pushing ok to #{calc_id}"
       @calc_queues[calc_id][:in].push(:ok)
-      @calc_queues[calc_id][:out].pop()
+     # puts "CPU waits for caclculations to finish"
+       @calc_queues[calc_id][:out].pop()
 
     end
   end
   end
- 
+  
 end
 
 class Calc_object_factory
   def initialize
+    #@cpuguard=CPU_guard.new
+    
     @cpuguard=CPU_guard.new
     @cpuguard.process
-  end
-  def create_object
-    @objects||=[]
-    newobj=Calculating_object.new(@cpuguard.cpuqueue,@cpuguard.create_communication_channels)
-    newobj.process
     
+    DRb.start_service nil, @cpuguard
+    @cpu_uri=DRb.uri
+  end
+  def create_object filename
+    @objects||=[]
+    myid=@cpuguard.create_communication_channels
+    #newobj=Calculating_object.new(@cpuguard, myid)
+    #newobj.process
+   
+    output=IO.popen("ruby /home/kzajac/MASK/src/#{filename} #{@cpu_uri} #{myid}")
+    puts output.readlines("\n")
   end
   
 end
 
   
 
-class Calculating_object
-  def initialize cpuqueue, cpu_quard_info
-    # TODO schowac kolejki w obiekcie CPUQuard i jego metodach get permission i release permission
+class Calculating_object_test
+  def initialize cpu_quard, my_id
+    
     @data=0
-    @my_id=cpu_quard_info[0]
-    @cpuqueue =cpuqueue
-    @inqueue=cpu_quard_info[1][:in]
-    @outqueue=cpu_quard_info[1][:out]
+    @my_id=my_id
+    @cpu_quard=cpu_quard
+   
   end
 
   def calculate
@@ -64,22 +89,23 @@ class Calculating_object
   end
 
   def process
+   # puts "processing"
     Thread.new do
       while true do
-        @cpuqueue.push(@my_id)
-        @inqueue.pop()
+       # puts "getting permissions"
+        @cpu_quard.get_permission(@my_id)
          calculate
-        @outqueue.push(:done)
+         @cpu_quard.release_permission(@my_id)
       end
     end
   end
 end
 puts "hello"
 # start up the DRb service
-#DRb.start_service nil, Calc_object_factory.new
+DRb.start_service nil, Calc_object_factory.new
 
 # We need the uri of the service to connect a client
-#puts DRb.uri
+puts DRb.uri
 
 # wait for the DRb service to finish before exiting
-#DRb.thread.join
+DRb.thread.join
