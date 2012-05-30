@@ -15,7 +15,7 @@ class Resource_information
       @resources.push(resource_url)
   end
 
-  def
+  def delete_from_resources
 
   end
 
