@@ -4,9 +4,19 @@ require 'drb'
 
 
 class Resource_Manager
+  def initialize
+    @init_port=47439
+  end
+  
   def get_resources
-     puts "getting resources"
-     ip="druby://ubuntu:47435"
+    url="druby://ubuntu:#{@init_port}"
+    IO.popen("ruby /home/kzajac/MASK/src/calc_object_factory.rb #{url}")
+    10.times do
+      puts "waiting for cacl factory ..."
+    sleep(1)
+    end
+    @init_port=@init_port+1
+    return url
   end
 end
 
@@ -26,6 +36,7 @@ class Executor_Scenario
 
   def create_object filename
     url=@resman.get_resources
+    puts url
     @my_obj=get_remote_calc_object_factory(url).create_object filename
 
   end

@@ -20,7 +20,7 @@ class Calculating_object
     beginning = Time.now
     a = DMatrix.rand(1600, 1600)
     l, u = a.lu
-    puts "Time elapsed #{Time.now - beginning} seconds"
+    File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("Time elapsed #{Time.now - beginning} seconds\n")}
 
   end
 

@@ -6,21 +6,7 @@
 require 'drb'
 require 'thread'
 
-class Resource_information
 
-
-
-  def add_to_resources_list resource_url
-      @resources||=[]
-      @resources.push(resource_url)
-  end
-
-  def delete_from_resources
-
-  end
-
-
-end
 
 class CPU_guard
   attr_accessor :cpuqueue, :calc_queues
@@ -117,10 +103,10 @@ class Calculating_object_test
 end
 puts "hello"
 # start up the DRb service
-DRb.start_service nil, Calc_object_factory.new
+DRb.start_service ARGV[0], Calc_object_factory.new
 
 # We need the uri of the service to connect a client
-puts DRb.uri
+$stderr.puts DRb.uri
 
 # wait for the DRb service to finish before exiting
 DRb.thread.join
