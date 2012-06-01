@@ -63,11 +63,13 @@ class Calc_object_factory
   def create_object filename
     @objects||=[]
     myid=@cpuguard.create_communication_channels
-    #newobj=Calculating_object.new(@cpuguard, myid)
-    #newobj.process
-   
-    output=IO.popen("ruby /home/kzajac/MASK/src/#{filename} #{@cpu_uri} #{myid}")
-    puts output.readlines("\n")
+    
+    $stderr.puts "zaczynam #{filename}"
+    #th=Thread.new do
+        wasgood=system("ruby /home/kzajac/MASK/src/#{filename} #{@cpu_uri} #{myid}")
+    #end
+     #th.join
+     $stderr.puts "skonczylam #{filename} z wynikiem #{wasgood}"
   end
   
 end
