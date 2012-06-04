@@ -66,7 +66,8 @@ class Calc_object_factory
     
     $stderr.puts "zaczynam #{filename}"
     #th=Thread.new do
-        wasgood=system("ruby /home/kzajac/MASK/src/#{filename} #{@cpu_uri} #{myid}")
+        wasgood=`ruby /home/kzajac/MASK/src/#{filename} #{@cpu_uri} #{myid}`
+     File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("skonczylam #{filename} z wynikiem #{wasgood}\n")}
     #end
      #th.join
      $stderr.puts "skonczylam #{filename} z wynikiem #{wasgood}"

@@ -41,4 +41,4 @@ class Calculating_object
 end
 #puts ARGV[0], ARGV[1]
 Calculating_object.new(ARGV[0], ARGV[1]).process
-exit(0)
+#exit(0)
