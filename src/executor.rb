@@ -11,7 +11,7 @@ class Resource_Manager
   def get_resources
     url="druby://ubuntu:#{@init_port}"
     IO.popen("ruby /home/kzajac/MASK/src/calc_object_factory.rb #{url}")
-   10.times do
+     10.times do
      puts "waiting for cacl factory ..."
     sleep(1)
     end

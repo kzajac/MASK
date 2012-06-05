@@ -63,14 +63,15 @@ class Calc_object_factory
   def create_object filename
     @objects||=[]
     myid=@cpuguard.create_communication_channels
-    
-    $stderr.puts "zaczynam #{filename}"
-    #th=Thread.new do
+   
+    th=Thread.new do
+         $stderr.puts "zaczynam #{filename}"
         wasgood=`ruby /home/kzajac/MASK/src/#{filename} #{@cpu_uri} #{myid}`
-     File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("skonczylam #{filename} z wynikiem #{wasgood}\n")}
-    #end
-     #th.join
-     $stderr.puts "skonczylam #{filename} z wynikiem #{wasgood}"
+        File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("skonczylam #{filename} z wynikiem #{wasgood}\n")}
+        $stderr.puts "skonczylam #{filename} z wynikiem #{wasgood}"
+    end
+    
+     
   end
   
 end
