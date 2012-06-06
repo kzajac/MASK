@@ -69,7 +69,7 @@ class Calc_object_factory
         wasgood=`ruby /home/kzajac/MASK/src/#{filename} #{@cpu_uri} #{myid}`
         File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("skonczylam #{filename} z wynikiem #{wasgood}\n")}
         $stderr.puts "skonczylam #{filename} z wynikiem #{wasgood}"
-    end
+   end
     
      
   end

@@ -6,18 +6,24 @@ require 'drb'
 class Resource_Manager
   def initialize
     @init_port=47439
+    @resources||=Hash.new
   end
   
-  def get_resources
-    url="druby://ubuntu:#{@init_port}"
-    IO.popen("ruby /home/kzajac/MASK/src/calc_object_factory.rb #{url}")
-     10.times do
-     puts "waiting for cacl factory ..."
-    sleep(1)
+  def get_resources requirements
+    if (@resources[requirements]==nil)
+      url="druby://ubuntu:#{@init_port}"
+      IO.popen("ruby /home/kzajac/MASK/src/calc_object_factory.rb #{url}")
+      13.times do
+      puts "waiting for cacl factory ..."
+        sleep(1)
+      end
+      @init_port=@init_port+1
+      @resources[requirements]=url
     end
-    @init_port=@init_port+1
-    return url
+
+    return @resources[requirements]
   end
+
 end
 
 
@@ -40,7 +46,7 @@ class Executor_Scenario
   end
 
   def create_object filename
-    url=@resman.get_resources
+    url=@resman.get_resources 1
     @my_obj=get_remote_calc_object_factory(url).create_object filename
          
     
@@ -54,7 +60,9 @@ class Executor_Scenario
 
 end
 puts "Hello World"
-exec=Executor_Scenario.new.create_object "LU_factorization.rb"
+exec=Executor_Scenario.new
+exec.create_object "LU_factorization.rb"
+exec.create_object "LU_factorization.rb"
 puts "po sprawie #{exec}"
 #exec.ask_calculate(1, 8)
 #calc=Calculating_object.new
