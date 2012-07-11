@@ -51,7 +51,7 @@ class CPU_guard
 end
 
 class Calc_object_factory
-  def initialize
+  def initialize resman_uri
     #@cpuguard=CPU_guard.new
     
     @cpuguard=CPU_guard.new
@@ -59,6 +59,7 @@ class Calc_object_factory
     
     DRb.start_service nil, @cpuguard
     @cpu_uri=DRb.uri
+    @resman_uri=resman_uri
   end
   def create_object filename
     @objects||=[]
@@ -66,7 +67,7 @@ class Calc_object_factory
    
     th=Thread.new do
          $stderr.puts "zaczynam #{filename}"
-        wasgood=`ruby /home/kzajac/MASK/src/#{filename} #{@cpu_uri} #{myid}`
+        wasgood=`ruby /home/kzajac/MASK/src/#{filename} #{@cpu_uri} #{myid} #{@resman_uri}`
         File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("skonczylam #{filename} z wynikiem #{wasgood}\n")}
         $stderr.puts "skonczylam #{filename} z wynikiem #{wasgood}"
    end
@@ -105,9 +106,10 @@ class Calculating_object_test
   end
   end
 end
-puts "hello"
+
 # start up the DRb service
-DRb.start_service ARGV[0], Calc_object_factory.new
+
+DRb.start_service ARGV[0], Calc_object_factory.new(ARGV[1])
 
 # We need the uri of the service to connect a client
 $stderr.puts DRb.uri

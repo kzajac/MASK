@@ -19,8 +19,8 @@ class Calculating_object
     beginning = Time.now
     a = DMatrix.rand(1600, 1600)
     l, u = a.lu
-    File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("Time elapsed #{Time.now - beginning} seconds\n")}
-    puts  "Time elapsed #{Time.now - beginning} seconds\n"
+    File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("Time elapsed fg #{Time.now - beginning} seconds\n")}
+    puts  "Time elapsed fg #{Time.now - beginning} seconds\n"
   end
   def spawn filename
     _url=@resman.get_resources 2
@@ -31,16 +31,15 @@ class Calculating_object
    # puts "processing"
     #Thread.new do
 
-      3.times do
+      1.times do
        # puts "getting permissions"
          @cpu_quard.get_permission(@my_id)
          calculate
          @cpu_quard.release_permission(@my_id)
-         spawn "finegrained.rb"
       end
    # end
-     File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("koniec\n")}
-     puts  "koniec\n"
+     File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("koniec fg \n")}
+     puts  "koniec fg \n"
      #STDOUT.flush
   end
 end
