@@ -5,6 +5,10 @@
 # load DRb
 require 'drb'
 require 'thread'
+require 'rubygems'
+
+
+require 'sinatra'
 
 
 
@@ -51,7 +55,7 @@ class CPU_guard
 end
 
 class Calc_object_factory
-  def initialize resman_uri
+  def initialize 
     #@cpuguard=CPU_guard.new
     
     @cpuguard=CPU_guard.new
@@ -59,8 +63,11 @@ class Calc_object_factory
     
     DRb.start_service nil, @cpuguard
     @cpu_uri=DRb.uri
-    @resman_uri=resman_uri
+    @resman_uri="druby://ubuntu:47432"
+   
   end
+  
+  
   def create_object filename
     @objects||=[]
     myid=@cpuguard.create_communication_channels
@@ -109,10 +116,19 @@ end
 
 # start up the DRb service
 
-DRb.start_service ARGV[0], Calc_object_factory.new(ARGV[1])
+#DRb.start_service ARGV[0], Calc_object_factory.new(ARGV[1])
+calc=Calc_object_factory.new()
 
 # We need the uri of the service to connect a client
-$stderr.puts DRb.uri
+#$stderr.puts DRb.uri
 
 # wait for the DRb service to finish before exiting
-DRb.thread.join
+#DRb.thread.join
+set :port, ARGV[0]
+post '/filename/:id' do
+  calc.create_object params[:id].to_s
+end
+get '/' do
+  "Hello world, it's #{Time.now} at the server!"
+
+end

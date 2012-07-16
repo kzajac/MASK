@@ -1,16 +1,18 @@
 # To change this template, choose Tools | Templates
 # and open the template in the editor.
+require 'rubygems'
 require 'drb'
-
-
+require "net/http"
+require "uri"
+require 'rest_client'
 class Resource_Manager
   #attr_accessor :resman_uri
   def initialize
     @init_port=47439
     @resources||=Hash.new
-    DRb.start_service nil, self
-     puts DRb.uri
-    @resman_uri=DRb.uri
+    @resman_uri="druby://ubuntu:47432"
+    DRb.start_service @resman_uri, self
+    puts @resman_uri
   end
   
   def get_resources requirements
@@ -18,14 +20,13 @@ class Resource_Manager
     if (@resources[requirements]==nil)
       @resources[requirements]=1
       puts "getting new resources"
-      url="druby://ubuntu:#{@init_port}"
-      IO.popen("ruby /home/kzajac/MASK/src/calc_object_factory.rb #{url} #{@resman_uri}")
+      IO.popen("ruby /home/kzajac/MASK/src/calc_object_factory.rb #{@init_port} ")
       13.times do
       puts "waiting for cacl factory ..."
         sleep(1)
       end
-      @init_port=@init_port+1
-      @resources[requirements]=url
+      @resources[requirements]=@init_port
+      @init_port=@init_port+1 
     end
     while (@resources[requirements]==1) 
 
@@ -45,25 +46,13 @@ class Executor_Scenario
   
   end
 
- 
-  def get_remote_calc_object_factory url
-    
-           remote_calc_object = DRbObject.new nil, url
-           puts remote_calc_object
-           
-   
-    
-    
-   
-     return remote_calc_object
-  end
-
   def create_object filename
-    url=@resman.get_resources 1
-    @my_obj=get_remote_calc_object_factory(url).create_object filename
-         
-    
-    
+    _factory_port=@resman.get_resources 1
+   
+     _url="http://localhost:#{_factory_port}"
+      puts _url
+     res= RestClient.post "http://localhost:#{_factory_port}/filename/#{filename}", ""
+     puts res
 
   end
   
@@ -75,7 +64,7 @@ end
 puts "Hello World"
 exec=Executor_Scenario.new
 exec.create_object "LU_factorization.rb"
- exec.create_object "LU_factorization.rb"
+#exec.create_object "LU_factorization.rb"
 puts "po sprawie #{exec}"
 
 #exec.ask_calculate(1, 8)

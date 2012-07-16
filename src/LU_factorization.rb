@@ -1,6 +1,10 @@
 # To change this template, choose Tools | Templates
 # and open the template in the editor.
-
+require 'rubygems'
+require 'drb'
+require "net/http"
+require "uri"
+require 'rest_client'
 require 'linalg'
 require 'drb'
 include Linalg
@@ -23,9 +27,15 @@ class Calculating_object
     puts  "Time elapsed #{Time.now - beginning} seconds\n"
   end
   def spawn filename
-    _url=@resman.get_resources 2
-    remote_calc_object = DRbObject.new nil, _url
-    @my_obj=remote_calc_object.create_object filename
+
+
+    _factory_port=@resman.get_resources 2
+
+     _url="http://localhost:#{_factory_port}"
+      puts _url
+     res= RestClient.post "http://localhost:#{_factory_port}/filename/#{filename}", ""
+     puts res
+    
   end
   def process
    # puts "processing"
