@@ -14,7 +14,7 @@ class DSLThing
 end
 
 class Executor < DSLThing
- attr_accessor :pets, :people
+ attr_accessor :modules, :people
 
  def self.create(&block)
   f = Executor.new
@@ -24,7 +24,7 @@ class Executor < DSLThing
  end
 
  def self.submodule(name, &blk)
-  @pets ||= Hash.new
+  @modules ||= Hash.new
   klass = Class.new(Submodule)
   Object.const_set(name, klass) if not Object.const_defined?(name)
   p = Object.const_get(name).new
@@ -34,7 +34,7 @@ class Executor < DSLThing
   p.class.instance_variable_set("@myexec",self)
   puts "copyvars"
    p.copyvars
-  @pets[name] = p
+  @modules[name] = p
  end
 end
 
@@ -60,7 +60,9 @@ class Submodule < Supsubmodule
 
  def self.spawn other_name
   puts "#{name} spawning #{other_name}, #{@myexec}"
-  puts @myexec
+  @myexec.instance_eval do
+    @modules[other_name].perform
+  end
  end
 
  def self.define_calculations(name, &trick_definition)
@@ -78,14 +80,14 @@ class Submodule < Supsubmodule
  
 end
 
-shop = Executor.create do
+module_set = Executor.create do
  
 
  submodule "LU_factor" do
   process do
   
    lu_factorization
-   spawn "sth"
+   spawn "LU_factor_fined"
   
   end
 
@@ -121,4 +123,4 @@ shop = Executor.create do
  end
 end
 
-shop.pets["LU_factor"].perform
+module_set.modules["LU_factor"].perform
