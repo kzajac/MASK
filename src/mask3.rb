@@ -73,6 +73,7 @@ class Submodule < Supsubmodule
 
  def perform
   puts "#{name} will now perform..."
+  puts @routine
   @routine.call
   puts "Let's hear some applause for #{name}!"
  end
@@ -107,7 +108,7 @@ module_set = Executor.create do
   process do
 
    lu_factorization
-
+    
   end
 
   define_calculations "lu_factorization" do
