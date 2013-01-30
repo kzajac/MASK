@@ -86,10 +86,10 @@ module_set = Executor.create do
 
  submodule "LU_factor" do
   process do
-  
+  for i in 0..5
    lu_factorization
    spawn "LU_factor_fined"
-  
+  end
   end
 
   define_calculations "lu_factorization" do
