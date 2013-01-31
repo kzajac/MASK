@@ -1,4 +1,6 @@
+require 'rubygems'
 require 'linalg'
+require 'json'
 include Linalg
 class DSLThing
  def copyvars
@@ -29,7 +31,6 @@ class Executor < DSLThing
   Object.const_set(name, klass) if not Object.const_defined?(name)
   p = Object.const_get(name).new
   p.name = name
-  p.myexec="haha"
   p.class.class_eval(&blk) if block_given?
   p.class.instance_variable_set("@myexec",self)
   puts "copyvars"
@@ -49,8 +50,7 @@ end
 class Submodule < Supsubmodule
  def initialize(name=nil)
   @name = name
- # p @namee
-  @myexec=nil
+ 
   super
  end
 
@@ -66,14 +66,17 @@ class Submodule < Supsubmodule
  end
 
  def self.define_calculations(name, &trick_definition)
+  
+  
   singleton_class.class_eval do
    define_method name, &trick_definition
   end
  end
 
  def perform
+   #stworzyc resource i wyslac tam siebie
   puts "#{name} will now perform..."
-  puts @routine
+  puts @routine.to_json
   @routine.call
   puts "Let's hear some applause for #{name}!"
  end
@@ -124,4 +127,8 @@ module_set = Executor.create do
  end
 end
 
+
+
+
+puts module_set.modules["LU_factor"]
 module_set.modules["LU_factor"].perform
