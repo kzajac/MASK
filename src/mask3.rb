@@ -65,12 +65,20 @@ class Submodule < Supsubmodule
   end
  end
 
- def self.define_calculations(name, &trick_definition)
+ #def self.define_calculations(name, &trick_definition)
+  
+ 
+  #singleton_class.class_eval do
+  # define_method name, &trick_definition
+ # end
+# end
+def self.define_calculations(&trick_definition)
+   @calculations_method=trick_definition
   
   
-  singleton_class.class_eval do
-   define_method name, &trick_definition
-  end
+ end
+ def self.calculate
+   @calculations_method.call
  end
 
  def perform
@@ -90,12 +98,12 @@ module_set = Executor.create do
  submodule "LU_factor" do
   process do
   for i in 0..5
-   lu_factorization
+   calculate
    spawn "LU_factor_fined"
   end
   end
 
-  define_calculations "lu_factorization" do
+  define_calculations  do
 
     beginning = Time.now
     a = DMatrix.rand(1600, 1600)
@@ -110,11 +118,11 @@ module_set = Executor.create do
  submodule "LU_factor_fined" do
   process do
 
-   lu_factorization
+  calculate
     
   end
 
-  define_calculations "lu_factorization" do
+  define_calculations do
 
     beginning = Time.now
     a = DMatrix.rand(1600, 1600)
