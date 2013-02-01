@@ -1,6 +1,7 @@
 require 'rubygems'
 require 'linalg'
 require 'json'
+
 include Linalg
 class DSLThing
  def copyvars
@@ -76,17 +77,23 @@ class Submodule < Supsubmodule
  # end
 # end
 def self.define_calculations(&trick_definition)
+    
    @calculations_method=trick_definition
   
   
  end
+ def self.set_state state
+   @state=state
+ end
  def self.calculate
-   #wyslij zadanie wywolania metody do zasobu
+   #wyslij zadanie wywolania iteracji do zasobuater, podaj swoj id.
+   
    @calculations_method.call
  end
 
  def perform
    # tworzymy nowy zasob
+   #stawiamy tam serwis obliczeniowy
   puts "#{name} will now perform..."
   puts @routine.to_json
   @routine.call
@@ -102,6 +109,7 @@ module_set = Executor.create do
 
  submodule "LU_factor" do
   process do
+   @state=0
   for i in 0..5
     #wywolujemy request obliczen na zasobie
    calculate
@@ -109,8 +117,9 @@ module_set = Executor.create do
   end
   end
 
-  define_calculations  do
-
+  define_calculations  do 
+    @state=@state+1
+    puts @state
     beginning = Time.now
     a = DMatrix.rand(1600, 1600)
     l, u = a.lu
@@ -144,5 +153,5 @@ end
 
 
 
-puts module_set.modules["LU_factor"]
+#puts module_set.modules["LU_factor"]
 module_set.start_running "LU_factor"
