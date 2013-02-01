@@ -37,6 +37,9 @@ class Executor < DSLThing
    p.copyvars
   @modules[name] = p
  end
+ def start_running(name)
+   @modules[name].perform
+ end
 end
 
 class Supsubmodule < DSLThing
@@ -78,14 +81,16 @@ def self.define_calculations(&trick_definition)
   
  end
  def self.calculate
+   #wyslij zadanie wywolania metody do zasobu
    @calculations_method.call
  end
 
  def perform
-   #stworzyc resource i wyslac tam siebie
+   # tworzymy nowy zasob
   puts "#{name} will now perform..."
   puts @routine.to_json
   @routine.call
+  #odbierz wyniki
   puts "Let's hear some applause for #{name}!"
  end
 
@@ -98,6 +103,7 @@ module_set = Executor.create do
  submodule "LU_factor" do
   process do
   for i in 0..5
+    #wywolujemy request obliczen na zasobie
    calculate
    spawn "LU_factor_fined"
   end
@@ -139,4 +145,4 @@ end
 
 
 puts module_set.modules["LU_factor"]
-module_set.modules["LU_factor"].perform
+module_set.start_running "LU_factor"
