@@ -62,11 +62,12 @@ class Submodule < Supsubmodule
   @routine = routine
  end
 
- def self.spawn other_name
-  puts "#{name} spawning #{other_name}, #{@myexec}"
+ def self.spawn other_name ,input
+  puts "#{name} spawning #{other_name}, #{@myexec}, with input #{input}"
   @myexec.instance_eval do
     @modules[other_name].perform
   end
+ # "wynik spawn"
  end
 
  #def self.define_calculations(name, &trick_definition)
@@ -96,7 +97,7 @@ def self.define_calculations(&trick_definition)
   puts @routine.to_json
   @routine.call
   #odbierz wyniki
-  puts "Let's hear some applause for #{name}!"
+ # puts "Let's hear some applause for #{name}!"
  end
 
  
@@ -107,22 +108,25 @@ module_set = Executor.create do
 
  submodule "LU_factor" do
   process do
-   @state=0
+   @state1=0
+
   for i in 0..5
     #wywolujemy request obliczen na zasobie
-   calculate
-   spawn "LU_factor_fined"
+   @input=calculate
+   @output=spawn "LU_factor_fined", @input
   end
   end
 
   define_calculations  do 
-    @state=@state+1
-    puts @state
+    @state1=@state1+1
+    puts @state1
+    puts @output
     beginning = Time.now
     a = DMatrix.rand(1600, 1600)
     l, u = a.lu
     File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("Time elapsed #{Time.now - beginning} seconds\n")}
     puts  "Time elapsed #{Time.now - beginning} seconds\n"
+    "wynik_obliczen"
   end
 
   
@@ -142,6 +146,7 @@ module_set = Executor.create do
     l, u = a.lu
     File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("Time elapsed #{Time.now - beginning} seconds\n")}
     puts  "Time elapsed #{Time.now - beginning} seconds\n"
+    "wynik obliczen 2"
   end
 
 
