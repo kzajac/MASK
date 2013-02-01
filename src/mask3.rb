@@ -82,9 +82,7 @@ def self.define_calculations(&trick_definition)
   
   
  end
- def self.set_state state
-   @state=state
- end
+ 
  def self.calculate
    #wyslij zadanie wywolania iteracji do zasobuater, podaj swoj id.
    
