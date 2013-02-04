@@ -146,7 +146,7 @@ module_set = Executor.create do
     l, u = a.lu
     File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("Time elapsed #{Time.now - beginning} seconds\n")}
     puts  "Time elapsed #{Time.now - beginning} seconds\n"
-    "wynik obliczen 2"
+    "wynik obliczen 3"
   end
 
 
