@@ -8,7 +8,14 @@ require 'rubygems'
 #require 'bundler/setup'
 
 require 'sinatra'
+post '/' do
+      "You said '#{params[:message]}'"
+    end
 
-get '/time' do
+
+get '/resources/time' do
+  "Hello world, it's #{Time.now} at the server!"
+end
+get '/resources2/time' do
   "Hello world, it's #{Time.now} at the server!"
 end

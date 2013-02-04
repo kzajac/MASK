@@ -41,6 +41,7 @@ class Executor < DSLThing
  def start_running(name)
    @modules[name].perform
  end
+ 
 end
 
 class Supsubmodule < DSLThing
@@ -52,6 +53,7 @@ class Supsubmodule < DSLThing
  end
 end
 class Submodule < Supsubmodule
+ @@zasoby||=Hash.new
  def initialize(name=nil)
   @name = name
  
@@ -62,12 +64,18 @@ class Submodule < Supsubmodule
   @routine = routine
  end
 
- def self.spawn other_name ,input
-  puts "#{name} spawning #{other_name}, #{@myexec}, with input #{input}"
+ def self.spawn other_name
+   
+ 
+   myname=name
+  puts "#{name} spawning #{other_name}, #{@myexec}"
   @myexec.instance_eval do
-    @modules[other_name].perform
+     @modules[other_name].perform myname
+    
+ 
   end
- # "wynik spawn"
+
+
  end
 
  #def self.define_calculations(name, &trick_definition)
@@ -83,20 +91,37 @@ def self.define_calculations(&trick_definition)
   
   
  end
+ def self.define_initial_state(&state_definition)
+  # puts state_definition
+   @state_defin=state_definition
+ end
  
  def self.calculate
    #wyslij zadanie wywolania iteracji do zasobuater, podaj swoj id.
    
    @calculations_method.call
+   
+ 
  end
-
- def perform
-   # tworzymy nowy zasob
+ def self.get_results
+   #pytamy o swoje rezultaty swoj zasob obliczeniowy i wszystkie spawny
+   @@zasoby.each_key {|_zasob|
+     puts "getting results about #{_zasob} from #{@@zasoby[_zasob]}"
+   }
+   
+ end
+ def perform mypredcessor=nil
+   #informujemy przodka o obliczeniach
+   @@zasoby[name]="moj zasob #{name}, moj przodek #{mypredcessor}"
+   # tworzymy nowy zasob lub korzystamy z obecnego dla tego typu obliczen
    #stawiamy tam serwis obliczeniowy
+   #przekazujemy przodka
+  
+   @state_defin.call unless @state_defin.nil?
   puts "#{name} will now perform..."
   puts @routine.to_json
   @routine.call
-  #odbierz wyniki
+ # na zdalnym zasobie po skonczeniu informujemy przodka
  # puts "Let's hear some applause for #{name}!"
  end
 
@@ -108,19 +133,21 @@ module_set = Executor.create do
 
  submodule "LU_factor" do
   process do
-   @state1=0
 
   for i in 0..5
     #wywolujemy request obliczen na zasobie
-   @input=calculate
-   @output=spawn "LU_factor_fined", @input
+   calculate
+   spawn "LU_factor_fined"
   end
   end
+
+   define_initial_state do
+     @state1=0
+   end
 
   define_calculations  do 
     @state1=@state1+1
     puts @state1
-    puts @output
     beginning = Time.now
     a = DMatrix.rand(1600, 1600)
     l, u = a.lu
