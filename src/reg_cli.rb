@@ -1,4 +1,4 @@
-
+require 'rubygems'
     require "rest_client"
    # require 'uri'
 
@@ -8,9 +8,10 @@
 
 
 
-res= RestClient.post 'http://gs2.mapper-project.eu:1234/add_base/Submodel', {"id"=>"923433", "name"=>'MojModel', "class"=>"my_class", "timescale"=>{"delta"=>"10","max"=>"10"},
-  "spacescales[]"=>[{"delta"=>"10", "max"=>"100"}, {"delta"=>"20", "max"=>"200"}]
-}
+res= RestClient.post 'http://localhost:4567/calculations', "message"=>"Kasia"
+p res
+
+res= RestClient.get 'http://localhost:4567/calculations'
 p res
 
 #conn = Net::HTTP.new('http://gs2.mapper-project.eu/',1234)
