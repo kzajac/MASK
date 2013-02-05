@@ -8,15 +8,18 @@ require 'rubygems'
 #require 'bundler/setup'
 
 require 'sinatra'
-@calculations||=[]
+
 post '/calculations' do
       "You said '#{params[:message]}'"
+      @calculations||=[]
       @calculations.push(:message)
+      "hello"
     end
 
 
 get '/calculations/' do
-  @calculations
+  @calculations.each {|_ind| puts @calculations[_ind]}
+ 
 end
 get '/resources2/time' do
   "Hello world, it's #{Time.now} at the server!"

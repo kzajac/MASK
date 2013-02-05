@@ -11,7 +11,7 @@ require 'rubygems'
 res= RestClient.post 'http://localhost:4567/calculations', "message"=>"Kasia"
 p res
 
-res= RestClient.get 'http://localhost:4567/calculations'
+res= RestClient.get 'http://localhost:4567/calculations/'
 p res
 
 #conn = Net::HTTP.new('http://gs2.mapper-project.eu/',1234)
