@@ -1,14 +1,16 @@
 require 'rubygems'
     require "rest_client"
+    require "json"
    # require 'uri'
 
     #1: Simple POST
    # res = Net::HTTP.post_form(URI.parse('http://gs2.mapper-project.eu:1234/add_base/Submodel'),
      #{"id"=>"92343", "name"=>'MojModel', "timescale[delta]"=>"10","timescale[max]"=>"100"})
-
-
-
-res= RestClient.post 'http://localhost:4567/calculations', "message"=>"Kasia"
+jdata = {:key => 'I am a value'}.to_json
+#jdata="Kasia".to_json
+puts jdata
+res= RestClient.post 'http://localhost:4567/calculations', {:data => jdata}, {:content_type => :json, :accept => :json}
+#res= RestClient.post 'http://localhost:4567/calculations', "message"=>"Kasia2"
 p res
 
 res= RestClient.get 'http://localhost:4567/calculations/'

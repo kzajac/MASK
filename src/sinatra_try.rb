@@ -8,18 +8,30 @@ require 'rubygems'
 #require 'bundler/setup'
 
 require 'sinatra'
+require 'json'
+class Calculations
 
+  def self.add element
+   @calculations||=[]
+   @calculations.push(element)
+  end
+  def self.calculations
+    @calculations
+  end
+ end
 post '/calculations' do
-      "You said '#{params[:message]}'"
-      @calculations||=[]
-      @calculations.push(:message)
+      #"You said '#{params[:message]}'"
+      jdata = params[:data]
+      for_json = JSON.parse(jdata)
+      Calculations.add(for_json)
+      #@calculations.push(:message)
       "hello"
     end
 
 
 get '/calculations/' do
-  @calculations.each {|_ind| puts @calculations[_ind]}
- 
+ puts Calculations.calculations
+ "kk"
 end
 get '/resources2/time' do
   "Hello world, it's #{Time.now} at the server!"
