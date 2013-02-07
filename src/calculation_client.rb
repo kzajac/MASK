@@ -36,8 +36,8 @@ class Calculation_client
     @host=host
     @port=port
   end
-  def request_calculations (name, id, predcessor)
-    jdata = {"name" =>name, "id"=>id, "predcessor"=>predcessor, "iteration"=>"middle"}.to_json
+  def request_calculations (name, id)
+    jdata = {"name" =>name, "id"=>id, "predcessor"=>"n/a", "iteration"=>"middle"}.to_json
     puts jdata
     res= RestClient.post "http://#{@host}:#{@port}/calculations", {:data => jdata}, {:content_type => :json, :accept => :json}
     p res

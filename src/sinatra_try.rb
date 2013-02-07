@@ -19,16 +19,16 @@ class Calculations
    end
 
   def self.calculations_rout
-    log = Logger.new(STDOUT)
-    log.level = Logger::DEBUG
+    @log = Logger.new(STDOUT)
+    @log.level = Logger::DEBUG
 
     @state1=@state1+1
-    log.debug("stan=#{@state1}")
+    @log.debug("stan=#{@state1}")
     beginning = Time.now
     a = DMatrix.rand(1600, 1600)
     l, u = a.lu
     File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("Time elapsed #{Time.now - beginning} seconds\n")}
-    log.info("Time elapsed #{Time.now - beginning} seconds\n")
+    @log.info("Time elapsed #{Time.now - beginning} seconds\n")
   end
 
   def self.generate_id
@@ -79,7 +79,7 @@ class Calculations
 
     identifier=get_next_to_process
     unless identifier.nil?
-      if (identifier.include?("final"))
+      if (identifier.include?("finish"))
         @calculations[identifier]["status"]="finished"
         inform_predcessor(@calculations[identifier]["predcessor"])
       elsif (identifier.include?("begin"))
@@ -87,10 +87,16 @@ class Calculations
          init_state_rout
 
       else
+        if (@log.nil?)
+          @log = Logger.new(STDOUT)
+        end
+        @log.level = Logger::DEBUG
+        @log.debug("licze #{identifier}")
         @calculations[identifier]["status"]="running"
         calculations_rout
         @calculations[identifier]["status"]="finished"
       end
+    
     else
       sleep 0.5
     end
