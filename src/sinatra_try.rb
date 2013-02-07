@@ -9,6 +9,9 @@ require 'rubygems'
 
 require 'sinatra'
 require 'json'
+require 'linalg'
+require 'pp'
+include Linalg
 class Calculations
 
   def self.init_state_rout
@@ -16,23 +19,44 @@ class Calculations
    end
 
   def self.calculations_rout
+    log = Logger.new(STDOUT)
+    log.level = Logger::DEBUG
+
     @state1=@state1+1
-    puts @state1
+    log.debug("stan=#{@state1}")
     beginning = Time.now
     a = DMatrix.rand(1600, 1600)
     l, u = a.lu
     File.open("/home/kzajac/MASK/src/wyniki", 'a') {|f| f.write("Time elapsed #{Time.now - beginning} seconds\n")}
-    puts  "Time elapsed #{Time.now - beginning} seconds\n"
-    "wynik_obliczen"
+    log.info("Time elapsed #{Time.now - beginning} seconds\n")
+  end
+
+  def self.generate_id
+    if @gen.nil?
+      @gen=0
+    else
+      @gen=@gen+1
+    end
+    @gen
   end
 
   def self.add id, name, predcessor, iteration
+    #TODO: refactor !
+
+   if iteration=="begin"
+      @ident="begin"
+   elsif iteration=="finish"
+     @ident="finish"
+   else
+    @ident=generate_id
+   end
+
    @calculations||=Hash.new
    @calculations_stack||=[]
-   identifier="#{id}_#{iteration}"
+   identifier="#{id}_#{@ident}"
    @calculations_stack.push(identifier)
    @calculations[identifier]={"name"=>name, "predcessor"=>predcessor, "status"=> "waiting"}
-
+  
   end
   def self.status_calc identifier
     @calculations[identifier]["status"]
@@ -41,13 +65,35 @@ class Calculations
     return @calculations
 
   end
+  
+  def self.inform_predcessor pred
+    puts "informing predcessor #{pred}"
+  end
+
+  def self.get_next_to_process
+    @calculations_stack||=[]
+    @calculations_stack.shift
+  end
+  
   def self.run_calc
-    puts "tutaj 2"
-    identifier=@calculations_stack.pop unless @calculations_stack.nil?
-    put identifier
-    @calculations[identifier ]["status"]="running"
-    calculations_rout unless identifier.nil?
-    @calculations[identifier]["status"]="finished"
+
+    identifier=get_next_to_process
+    unless identifier.nil?
+      if (identifier.include?("final"))
+        @calculations[identifier]["status"]="finished"
+        inform_predcessor(@calculations[identifier]["predcessor"])
+      elsif (identifier.include?("begin"))
+         @calculations[identifier]["status"]="finished"
+         init_state_rout
+
+      else
+        @calculations[identifier]["status"]="running"
+        calculations_rout
+        @calculations[identifier]["status"]="finished"
+      end
+    else
+      sleep 0.5
+    end
   end
 
  
@@ -57,19 +103,24 @@ class Calculations
 end
 
 
+
 Thread.new do
-  Calculations.init_state_rout
-  while true do
-    puts"tutaj"
-    puts Calculations.all_statuses
+  begin
+
+    while true do
+    
       Calculations.run_calc
-      sleep 1
- 
+    
+    end
+  rescue
+      pp $!
   end
 end
 
+
 post '/calculations' do
-     
+   
+
       jdata = params[:data]
       for_json = JSON.parse(jdata)
 
@@ -90,7 +141,7 @@ get '/calculations/' do
    status 200
 end
 get '/calculations/:identifier' do
-  body(JSON.pretty_generate({:status=>Calculations.status_calc[params[identifier]]}))
+  
   status 200
 
   #if Calculations.calculations[params[:number].to_i].nil?

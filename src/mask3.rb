@@ -1,8 +1,12 @@
+require "/home/kzajac/MASK/src/calculation_client.rb"
+
 require 'rubygems'
 require 'linalg'
 require 'json'
 
 include Linalg
+include Calculation_clients
+
 class DSLThing
  def copyvars
   self.class.instance_variables.each do |var|
@@ -56,6 +60,7 @@ class Submodule < Supsubmodule
  @@zasoby||=Hash.new
  def initialize(name=nil)
   @name = name
+
  
   super
  end
@@ -67,7 +72,7 @@ class Submodule < Supsubmodule
  def self.spawn other_name
    
  
-   myname=name
+  myname=name
   puts "#{name} spawning #{other_name}, #{@myexec}"
   @myexec.instance_eval do
      @modules[other_name].perform myname
@@ -98,30 +103,34 @@ def self.define_calculations(&trick_definition)
  
  def self.calculate
    #wyslij zadanie wywolania iteracji do zasobuater, podaj swoj id.
-   
-   @calculations_method.call
+   @@zasoby[name].request_calculations(name,1,"none")
+   #@calculations_method.call
    
  
  end
  def self.get_results
    #pytamy o swoje rezultaty swoj zasob obliczeniowy i wszystkie spawny
-   @@zasoby.each_key {|_zasob|
-     puts "getting results about #{_zasob} from #{@@zasoby[_zasob]}"
-   }
+   
    
  end
- def perform mypredcessor=nil
-   #informujemy przodka o obliczeniach
-   @@zasoby[name]="moj zasob #{name}, moj przodek #{mypredcessor}"
-   # tworzymy nowy zasob lub korzystamy z obecnego dla tego typu obliczen
+ def perform mypredcessor="none"
+  
+   #TODO informujemy przodka o obliczeniach (zanim stworzymy zasob !)
+   
+  # tworzymy nowy zasob lub korzystamy z obecnego dla tego typu obliczen
    #stawiamy tam serwis obliczeniowy
    #przekazujemy przodka
-  
-   @state_defin.call unless @state_defin.nil?
+
+   @@zasoby[name]=Calculation_client.new("localhost",4567)
+   @@zasoby[name].request_start(name,1, mypredcessor)
+   
+   
+  @state_defin.call unless @state_defin.nil?
   puts "#{name} will now perform..."
   puts @routine.to_json
   @routine.call
- # na zdalnym zasobie po skonczeniu informujemy przodka
+  @@zasoby[name].request_end(name,1, "none")
+ # TODO na zdalnym zasobie po skonczeniu informujemy przodka
  # puts "Let's hear some applause for #{name}!"
  end
 
@@ -134,10 +143,10 @@ module_set = Executor.create do
  submodule "LU_factor" do
   process do
 
-  for i in 0..5
+  for i in 0..1
     #wywolujemy request obliczen na zasobie
    calculate
-   spawn "LU_factor_fined"
+  # spawn "LU_factor_fined"
   end
   end
 
