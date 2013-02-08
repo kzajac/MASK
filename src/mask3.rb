@@ -103,7 +103,7 @@ def self.define_calculations(&trick_definition)
  
  def self.calculate
    #wyslij zadanie wywolania iteracji do zasobuater, podaj swoj id.
-   @@zasoby[name].request_calculations(name,1)
+   @@zasoby[name].request_calculations(name)
    #@calculations_method.call
    
  
@@ -122,14 +122,14 @@ def self.define_calculations(&trick_definition)
    #przekazujemy przodka
 
    @@zasoby[name]=Calculation_client.new("localhost",4567)
-   @@zasoby[name].request_start(name,1, mypredcessor)
-   
-   
+   @@zasoby[name].request_start(name,mypredcessor)
+   @@zasoby[mypredcessor].add_spawn_info(_my_remote_id) unless @@zasoby[mypredcessor].nil?
+
   @state_defin.call unless @state_defin.nil?
   puts "#{name} will now perform..."
   puts @routine.to_json
   @routine.call
-  @@zasoby[name].request_end(name,1, mypredcessor)
+  @@zasoby[name].request_end(name,mypredcessor)
  # TODO na zdalnym zasobie po skonczeniu informujemy przodka
  # puts "Let's hear some applause for #{name}!"
  end
@@ -143,11 +143,11 @@ module_set = Executor.create do
  submodule "LU_factor" do
   process do
 
-  #for i in 0..1
+  for i in 0..1
     #wywolujemy request obliczen na zasobie
    calculate
    spawn "LU_factor_fined"
-  #end
+  end
   end
 
    define_initial_state do

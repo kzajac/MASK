@@ -11,7 +11,26 @@ require 'sinatra'
 require 'json'
 require 'linalg'
 require 'pp'
+require 'logger'
 include Linalg
+class Spawns
+  def self.add(id)
+    @spawns||=Hash.new
+    @spawns[id]=[]
+    @spawns[id].push("1")
+    @spawns[id].length-1
+  end
+  def self.delete(id)
+    _myspawn=@spawns[id] unless @spawns.nil?
+    _myspawn.shift unless _myspawn.nil?
+    puts ("deleting spawn")
+  end
+  def self.all_statuses
+    return @spawns
+
+  end
+end
+
 class Calculations
 
   def self.init_state_rout
@@ -40,27 +59,21 @@ class Calculations
     @gen
   end
 
-  def self.add id, name, predcessor, iteration
-    #TODO: refactor !
+  def self.add  name, predcessor, iteration
+    #TODO: reactor !
 
-   if iteration=="begin"
-      @ident="begin"
-   elsif iteration=="finish"
-     @ident="finish"
-   else
-    @ident=generate_id
-   end
-
-   @calculations||=Hash.new
+   @calculations||=[]
    @calculations_stack||=[]
-   identifier="#{id}_#{@ident}"
-   @calculations_stack.push(identifier)
-   @calculations[identifier]={"name"=>name, "predcessor"=>predcessor, "status"=> "waiting"}
+   @calculation_instances||=[]
+
+
+   @calculations.push({"name"=>name, "predcessor"=>predcessor,"iteration"=>iteration, "status"=> "waiting"})
+   myind=@calculations.length-1
+   @calculations_stack.push(myind)
+   return myind
+
+  end
   
-  end
-  def self.status_calc identifier
-    @calculations[identifier]["status"]
-  end
   def self.all_statuses
     return @calculations
 
@@ -78,19 +91,26 @@ class Calculations
   def self.run_calc
 
     identifier=get_next_to_process
+
+    if(@log.nil?)
+        @log = Logger.new(STDOUT)
+        @log.level = Logger::DEBUG
+    end
+    
+    
     unless identifier.nil?
-      if (identifier.include?("finish"))
+      iteration=@calculations[identifier]["iteration"]
+      if (iteration=="finish")
+        @log.debug("finish id=#{identifier}")
         @calculations[identifier]["status"]="finished"
         inform_predcessor(@calculations[identifier]["predcessor"])
-      elsif (identifier.include?("begin"))
+      elsif (iteration=="begin")
+        @log.debug("begin id=#{identifier}")
          @calculations[identifier]["status"]="finished"
          init_state_rout
 
       else
-        if (@log.nil?)
-          @log = Logger.new(STDOUT)
-        end
-        @log.level = Logger::DEBUG
+        
         @log.debug("licze #{identifier}")
         @calculations[identifier]["status"]="running"
         calculations_rout
@@ -123,7 +143,31 @@ Thread.new do
   end
 end
 
+post '/spawns' do
+     jdata=params[:data]
+     for_json= JSON.parse(jdata)
 
+     name= for_json["id"]
+
+     myind=Spawns.add(name)
+
+     body("http://#{request.host}:#{request.port}/spawns/#{myind}")
+
+     status 200
+
+end
+
+delete '/spawns' do
+     jdata=params[:data]
+     for_json= JSON.parse(jdata)
+
+     id= for_json["id"]
+
+     Spawns.delete(id)
+     body("deleted")
+
+     status 200
+end
 post '/calculations' do
    
 
@@ -131,19 +175,23 @@ post '/calculations' do
       for_json = JSON.parse(jdata)
 
       name= for_json["name"]
-      id= for_json["id"]
       predcessor=for_json["predcessor"]
       iteration=for_json["iteration"]
 
-      Calculations.add(id, name, predcessor, iteration)
+      myind=Calculations.add(name, predcessor, iteration)
      
-      body("http://#{request.host}:#{request.port}/calculations/#{id}_#{iteration}")
+      body({"index"=>myind, "url"=>"http://#{request.host}:#{request.port}/calculations/#{myind}"}.to_json)
 
       status 200
     end
 get '/calculations/' do
 
   body(Calculations.all_statuses.to_json)
+   status 200
+end
+get '/spawns/' do
+
+  body(Spawns.all_statuses.to_json)
    status 200
 end
 get '/calculations/:identifier' do
