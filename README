@@ -26,4 +26,6 @@ if there is a memory problem it is good to set heap range for muscle with additi
 using cxa contents in snippet (change classpath in CxA to the absolute path).
 
 For running it in the GS on ui you may have to manually install ruby gem json
+
+test
   
